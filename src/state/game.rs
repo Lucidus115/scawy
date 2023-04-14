@@ -227,16 +227,13 @@ impl State for InGame {
 
                 // Multiply tex coordinates by 4 to ensure index rgba is in correct order
                 let idx = idx(tex_x * 4, tex_y * 4, tex.height());
-                assert!(idx % 4 == 0, "{idx} is not a valid index");
-                let mut pixels = tex.pixels().to_vec();
-                let rgba = &mut pixels[idx..idx + 4];
+                let rgba = &mut tex.pixels()[idx..idx + 4].to_vec();
 
                 if side {
                     rgba.iter_mut().take(3).for_each(|val| *val /= 2);
                 }
 
                 let i = x * 4 + y as usize * WIDTH * 4;
-                //println!("RGBA: {:?}", rgba);
                 screen[i..i + 4].copy_from_slice(rgba);
             }
         }
