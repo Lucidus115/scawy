@@ -1,0 +1,32 @@
+[package]
+name = "raycasting"
+version = "0.1.0"
+edition = "2021"
+
+[profile.release]
+codegen-units = 1
+lto = "thin"
+
+[profile.dev]
+opt-level = 1
+
+[profile.dev.package."*"]
+opt-level = 3
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+winit_input_helper = "0.14.0"
+game-loop = { version = "0.10", features = ["winit"] }
+pixels = { git = "https://github.com/parasyte/pixels", branch = "main"}
+bevy_ecs = "0.10"
+glam = "0.23"
+log = "0.4"
+env_logger = "0.10"
+rand = "*"
+serde = "1.0"
+rmp-serde = "1.1"
+directories = "4.0"
+ron = "0.8"
+line_drawing = "1.0"
+image = "0.24"
