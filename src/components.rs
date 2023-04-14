@@ -8,9 +8,7 @@ pub struct Transform {
 
 impl Default for Transform {
     fn default() -> Self {
-        Self {
-            pos: Vec2::ZERO
-        }
+        Self { pos: Vec2::ZERO }
     }
 }
 

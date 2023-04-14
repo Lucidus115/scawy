@@ -1,12 +1,13 @@
-use crate::{assets::Assets, prelude::*, state::State, HEIGHT, WIDTH, draw_line};
+use crate::{assets::Assets, draw_line, graphics, prelude::*, state::State, HEIGHT, WIDTH};
 
 use std::borrow::Cow;
 
 use bevy_ecs::prelude::*;
 use glam::{vec2, Vec2};
+use image::Pixel;
 use serde::{Deserialize, Serialize};
 
-use crate::{Controls};
+use crate::Controls;
 
 struct Camera {
     pos: Vec2,
@@ -19,7 +20,7 @@ impl Default for Camera {
         Self {
             pos: Vec2::ZERO,
             dir: Vec2::NEG_X,
-            plane: Vec2::new(0., 0.66)
+            plane: Vec2::new(0., 0.66),
         }
     }
 }
@@ -37,9 +38,7 @@ impl InGame {
 
         // Spawn player
         world.spawn((
-            Transform {
-                pos: vec2(14., 5.),
-            },
+            Transform { pos: vec2(14., 5.) },
             Movement::with_speed(0.2),
             Sprite {
                 width: 1.,
@@ -95,7 +94,7 @@ impl State for InGame {
                 let rot = -SENSITIVITY;
                 let prev_dir_x = self.cam.dir.x;
                 let prev_plane_x = self.cam.plane.x;
-    
+
                 self.cam.dir.x = self.cam.dir.x * rot.cos() - self.cam.dir.y * rot.sin();
                 self.cam.dir.y = prev_dir_x * rot.sin() + self.cam.dir.y * rot.cos();
                 self.cam.plane.x = self.cam.plane.x * rot.cos() - self.cam.plane.y * rot.sin();
@@ -105,27 +104,29 @@ impl State for InGame {
                 let rot = SENSITIVITY;
                 let prev_dir_x = self.cam.dir.x;
                 let prev_plane_x = self.cam.plane.x;
-    
+
                 self.cam.dir.x = self.cam.dir.x * rot.cos() - self.cam.dir.y * rot.sin();
                 self.cam.dir.y = prev_dir_x * rot.sin() + self.cam.dir.y * rot.cos();
                 self.cam.plane.x = self.cam.plane.x * rot.cos() - self.cam.plane.y * rot.sin();
                 self.cam.plane.y = prev_plane_x * rot.sin() + self.cam.plane.y * rot.cos();
             }
-
         }
 
         self.schedule.run(&mut self.world);
 
         // Camera follow player
-        let mut query = self.world.query_filtered::<&components::Transform, With<components::Player>>();
-            let Ok(player_loc) = query.get_single(&self.world) else {
+        let mut query = self
+            .world
+            .query_filtered::<&components::Transform, With<components::Player>>();
+        let Ok(player_loc) = query.get_single(&self.world) else {
                 return;
             };
 
-            self.cam.pos = player_loc.pos;
+        self.cam.pos = player_loc.pos;
     }
 
     fn draw(&mut self, screen: &mut [u8], assets: &Assets) {
+        let tex = assets.get_texture("textures/wall.png").unwrap();
         let cam_pos_x = self.cam.pos.x;
         let cam_pos_y = self.cam.pos.y;
 
@@ -135,12 +136,12 @@ impl State for InGame {
         // raycast
         for x in 0..WIDTH {
             let mut tile_pos = self.cam.pos.as_ivec2();
-            
+
             // cam coordinates in range of -1 to 1
             let cam_x = 2. * x as f32 / WIDTH as f32 - 1.;
             let ray_x = self.cam.dir.x + self.cam.plane.x * cam_x;
             let ray_y = self.cam.dir.y + self.cam.plane.y * cam_x;
-            
+
             let mut side_dist_x;
             let mut side_dist_y;
 
@@ -148,7 +149,7 @@ impl State for InGame {
             let delta_dist_y = (1. / ray_y).abs();
 
             let step_dir_x;
-            let step_dir_y ;
+            let step_dir_y;
             let mut side = false;
 
             // calculate step and side distances
@@ -196,22 +197,48 @@ impl State for InGame {
                 side_dist_y - delta_dist_y
             };
             let wall_height = (HEIGHT as f32 / perp_wall_dist) as i32;
-            let draw_start = vec2(x as f32, (-wall_height / 2 + HEIGHT as i32 / 2).max(0) as f32);
-            let draw_end = vec2(x as f32, (wall_height / 2 + HEIGHT as i32 / 2).min(HEIGHT as i32) as f32);
+            let draw_start = (-wall_height / 2 + HEIGHT as i32 / 2).max(0);
+            let draw_end = (wall_height / 2 + HEIGHT as i32 / 2).min(HEIGHT as i32);
 
-            let tile = map.get_tile(tile_pos.x as u32, tile_pos.y as u32).expect("tile should have been found already");
+            let tile = map
+                .get_tile(tile_pos.x as u32, tile_pos.y as u32)
+                .expect("tile should have been found already");
 
-            let mut rgba = match *tile {
-                1 => [15, 20, 100, 255],
-                2 => [65, 65, 15, 255],
-                _ => [15, 150, 20, 255]
+            // texture stuff
+            let mut wall_x = if !side {
+                cam_pos_y + perp_wall_dist * ray_y
+            } else {
+                cam_pos_x + perp_wall_dist * ray_x
             };
+            wall_x -= wall_x.floor();
 
-            if side {
-                rgba.iter_mut().take(3).for_each(|val| *val /= 2);
+            // texture x coordinate
+            let mut tex_x = (wall_x * tex.width() as f32) as u32;
+            if (!side && ray_x > 0.) || (side && ray_y < 0.) {
+                tex_x = tex.width() - tex_x - 1;
             }
 
-            draw_line(screen, &draw_start, &draw_end, rgba);
+            let step = tex.height() as f32 / wall_height as f32;
+            let mut tex_pos = (draw_start - HEIGHT as i32 / 2 + wall_height / 2) as f32 * step;
+
+            for y in draw_start..draw_end {
+                let tex_y = tex_pos as u32 & (tex.height() - 1);
+                tex_pos += step;
+
+                // Multiply tex coordinates by 4 to ensure index rgba is in correct order
+                let idx = idx(tex_x * 4, tex_y * 4, tex.height());
+                assert!(idx % 4 == 0, "{idx} is not a valid index");
+                let mut pixels = tex.pixels().to_vec();
+                let rgba = &mut pixels[idx..idx + 4];
+
+                if side {
+                    rgba.iter_mut().take(3).for_each(|val| *val /= 2);
+                }
+
+                let i = x * 4 + y as usize * WIDTH * 4;
+                //println!("RGBA: {:?}", rgba);
+                screen[i..i + 4].copy_from_slice(rgba);
+            }
         }
     }
 }

@@ -26,7 +26,6 @@ pub fn detect_collision(
             }
             movement.set_velocity(Vec2::ZERO);
         }
-
     }
 }
 

@@ -26,7 +26,7 @@ use pixels::{
 
 const WIDTH: usize = 256;
 const HEIGHT: usize = 144;
-const TITLE: &str = "Raycaster";
+const TITLE: &str = "Scawy";
 
 pub mod prelude {
     pub use crate::components;
@@ -59,7 +59,7 @@ struct Game {
 impl Game {
     fn new(pixels: Pixels) -> Self {
         let mut assets = Assets::new();
-        //assets.load_texture("textures/creature/kylo.png");
+        assets.load_texture("textures/wall.png");
 
         Self {
             assets,
@@ -76,7 +76,10 @@ impl Game {
                 - self.input.key_held(VirtualKeyCode::A) as i8;
             let y = self.input.key_held(VirtualKeyCode::S) as i8
                 - self.input.key_held(VirtualKeyCode::W) as i8;
-            let (left, right) = (self.input.key_held(VirtualKeyCode::Left) as i8 as f32, self.input.key_held(VirtualKeyCode::Right) as i8 as f32);
+            let (left, right) = (
+                self.input.key_held(VirtualKeyCode::Left) as i8 as f32,
+                self.input.key_held(VirtualKeyCode::Right) as i8 as f32,
+            );
             // let (left, right) = self.input.mouse_diff();
 
             Controls {

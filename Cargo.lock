@@ -1614,26 +1614,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f2ff9a1f06a88b01621b7ae906ef0211290d1c8a168a15542486a8f61c0833b9"
 
 [[package]]
-name = "raycasting"
-version = "0.1.0"
-dependencies = [
- "bevy_ecs",
- "directories",
- "env_logger",
- "game-loop",
- "glam",
- "image",
- "line_drawing",
- "log",
- "pixels",
- "rand",
- "rmp-serde",
- "ron",
- "serde",
- "winit_input_helper",
-]
-
-[[package]]
 name = "rayon"
 version = "1.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1773,6 +1753,26 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "794821e4ccb0d9f979512f9c1973480123f9bd62a90d74ab0f9426fcf8f4a529"
 dependencies = [
  "bytemuck",
+]
+
+[[package]]
+name = "scawy"
+version = "0.1.0"
+dependencies = [
+ "bevy_ecs",
+ "directories",
+ "env_logger",
+ "game-loop",
+ "glam",
+ "image",
+ "line_drawing",
+ "log",
+ "pixels",
+ "rand",
+ "rmp-serde",
+ "ron",
+ "serde",
+ "winit_input_helper",
 ]
 
 [[package]]

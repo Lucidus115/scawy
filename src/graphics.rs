@@ -37,7 +37,6 @@ pub struct Texture {
 }
 
 impl Texture {
-    //TODO: Have an asset loader handle this
     pub(crate) fn load(path: &Path) -> Self {
         let mut p = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         p.push("assets/");
@@ -47,7 +46,6 @@ impl Texture {
             warn!("Could not find an image with the path: {:?}", path);
             return Self { width: 0, height: 0, pixels: Vec::with_capacity(0).into()};
         };
-
         Self {
             width: im.width(),
             height: im.height(),
@@ -61,5 +59,9 @@ impl Texture {
 
     pub fn height(&self) -> u32 {
         self.height
+    }
+
+    pub fn pixels(&self) -> &Rc<[u8]> {
+        &self.pixels
     }
 }
