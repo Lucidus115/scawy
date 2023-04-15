@@ -1,10 +1,9 @@
-use crate::{assets::Assets, draw_line, graphics, prelude::*, state::State, HEIGHT, WIDTH};
+use crate::{assets::Assets, prelude::*, state::State, HEIGHT, WIDTH};
 
 use std::borrow::Cow;
 
 use bevy_ecs::prelude::*;
 use glam::{vec2, Vec2};
-use image::Pixel;
 use serde::{Deserialize, Serialize};
 
 use crate::Controls;
@@ -127,6 +126,9 @@ impl State for InGame {
 
     fn draw(&mut self, screen: &mut [u8], assets: &Assets) {
         let tex = assets.get_texture("textures/wall.png").unwrap();
+        let floor = assets.get_texture("textures/floor.png").unwrap();
+        let ceil = assets.get_texture("textures/ceil.png").unwrap();
+
         let cam_pos_x = self.cam.pos.x;
         let cam_pos_y = self.cam.pos.y;
 
@@ -134,6 +136,56 @@ impl State for InGame {
         let map = self.world.resource::<Map>();
 
         // raycast
+
+        // floor + ceiling
+        for y in 0..HEIGHT {
+            let ray_0 = self.cam.dir - self.cam.plane;
+            let ray_1 = self.cam.dir + self.cam.plane;
+
+            let cur_y_pos = y as i32 - HEIGHT as i32 / 2;
+            let vertical_pos = 0.5 * HEIGHT as f32;
+            let row_dist = vertical_pos / cur_y_pos as f32;
+
+            let step = row_dist * (ray_1 - ray_0) / WIDTH as f32;
+            let mut floor_pos = vec2(
+                cam_pos_x + row_dist * ray_0.x,
+                cam_pos_y + row_dist * ray_0.y,
+            );
+
+            for x in 0..WIDTH {
+                let cell = floor_pos.as_uvec2();
+
+                let tex_coords = uvec2(
+                    (floor.width() as f32 * (floor_pos.x - cell.x as f32)) as u32
+                        & (floor.width() as f32 - 1.) as u32,
+                    (floor.height() as f32 * (floor_pos.y - cell.y as f32)) as u32
+                        & (floor.height() as f32 - 1.) as u32,
+                );
+                floor_pos += step;
+
+                // floor
+                {
+                    let idx = idx(tex_coords.x * 4, tex_coords.y * 4, floor.width());
+                    let rgba = &mut floor.pixels()[idx..idx + 4].to_vec();
+                    rgba.iter_mut().take(3).for_each(|val| *val /= 2);
+
+                    let i = x * 4 + y * WIDTH * 4;
+                    screen[i..i + 4].copy_from_slice(rgba);
+                }
+
+                // ceiling
+                {
+                    let idx = idx(tex_coords.x * 4, tex_coords.y * 4, ceil.width());
+                    let rgba = &mut ceil.pixels()[idx..idx + 4].to_vec();
+                    rgba.iter_mut().take(3).for_each(|val| *val /= 2);
+
+                    let i = x * 4 + (HEIGHT - y - 1) * WIDTH * 4;
+                    screen[i..i + 4].copy_from_slice(rgba);
+                }
+            }
+        }
+
+        // wall
         for x in 0..WIDTH {
             let mut tile_pos = self.cam.pos.as_ivec2();
 
@@ -183,7 +235,6 @@ impl State for InGame {
                 }
 
                 if tile_pos.x.is_negative() || tile_pos.y.is_negative() {
-                    warn!("Nah");
                     return;
                 }
                 if let Some(tile) = map.get_tile(tile_pos.x as u32, tile_pos.y as u32) {
@@ -226,7 +277,7 @@ impl State for InGame {
                 tex_pos += step;
 
                 // Multiply tex coordinates by 4 to ensure index rgba is in correct order
-                let idx = idx(tex_x * 4, tex_y * 4, tex.height());
+                let idx = idx(tex_x * 4, tex_y * 4, tex.width());
                 let rgba = &mut tex.pixels()[idx..idx + 4].to_vec();
 
                 if side {

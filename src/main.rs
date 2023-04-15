@@ -60,6 +60,8 @@ impl Game {
     fn new(pixels: Pixels) -> Self {
         let mut assets = Assets::new();
         assets.load_texture("textures/wall.png");
+        assets.load_texture("textures/floor.png");
+        assets.load_texture("textures/ceil.png");
 
         Self {
             assets,
