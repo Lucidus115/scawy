@@ -136,6 +136,7 @@ impl State for InGame {
         let map = self.world.resource::<Map>();
 
         // raycast
+        // followed this tutorial lmao https://lodev.org/cgtutor/raycasting.html
 
         // floor + ceiling
         for y in 0..HEIGHT {
