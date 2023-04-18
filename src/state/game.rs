@@ -1,4 +1,4 @@
-use crate::{assets::Assets, prelude::*, state::State, HEIGHT, WIDTH};
+use crate::{prelude::*, state::State, Context, HEIGHT, WIDTH};
 
 use std::borrow::Cow;
 
@@ -31,7 +31,7 @@ pub struct InGame {
 }
 
 impl InGame {
-    pub fn new() -> Self {
+    pub fn new(ctx: &mut Context) -> Self {
         use components::*;
         let mut world = World::default();
 
@@ -39,12 +39,6 @@ impl InGame {
         world.spawn((
             Transform { pos: vec2(14., 5.) },
             Movement::with_speed(0.2),
-            Sprite {
-                width: 1.,
-                height: 1.,
-                color: [128, 15, 60, 255],
-                texture: "textures/creature/kylo.png".into(),
-            },
             Player,
         ));
 
@@ -66,7 +60,7 @@ impl InGame {
 
 const SENSITIVITY: f32 = 1. / FPS as f32 * 3.;
 impl State for InGame {
-    fn update(&mut self, controls: &Controls) {
+    fn update(&mut self, ctx: &mut Context) {
         // Input
         let mut query = self
             .world
@@ -74,22 +68,22 @@ impl State for InGame {
         for mut movement in query.iter_mut(&mut self.world) {
             let mut vel = Vec2::ZERO;
 
-            if controls.y < 0. {
+            if ctx.controls.y < 0. {
                 vel += vec2(self.cam.dir.x, self.cam.dir.y);
             }
-            if controls.y > 0. {
+            if ctx.controls.y > 0. {
                 vel += vec2(-self.cam.dir.x, -self.cam.dir.y);
             }
-            if controls.x > 0. {
+            if ctx.controls.x > 0. {
                 vel += vec2(self.cam.dir.y, -self.cam.dir.x);
             }
-            if controls.x < 0. {
+            if ctx.controls.x < 0. {
                 vel += vec2(-self.cam.dir.y, self.cam.dir.x);
             }
 
             movement.set_velocity(vel);
 
-            if controls.right != 0. {
+            if ctx.controls.right != 0. {
                 let rot = -SENSITIVITY;
                 let prev_dir_x = self.cam.dir.x;
                 let prev_plane_x = self.cam.plane.x;
@@ -99,7 +93,7 @@ impl State for InGame {
                 self.cam.plane.x = self.cam.plane.x * rot.cos() - self.cam.plane.y * rot.sin();
                 self.cam.plane.y = prev_plane_x * rot.sin() + self.cam.plane.y * rot.cos();
             }
-            if controls.left != 0. {
+            if ctx.controls.left != 0. {
                 let rot = SENSITIVITY;
                 let prev_dir_x = self.cam.dir.x;
                 let prev_plane_x = self.cam.plane.x;
@@ -124,10 +118,10 @@ impl State for InGame {
         self.cam.pos = player_loc.pos;
     }
 
-    fn draw(&mut self, screen: &mut [u8], assets: &Assets) {
-        let tex = assets.get_texture("textures/wall.png").unwrap();
-        let floor = assets.get_texture("textures/floor.png").unwrap();
-        let ceil = assets.get_texture("textures/ceil.png").unwrap();
+    fn draw(&mut self, ctx: &mut Context, screen: &mut [u8]) {
+        let tex = ctx.assets.get_texture("textures/wall.png").unwrap();
+        let floor = ctx.assets.get_texture("textures/floor.png").unwrap();
+        let ceil = ctx.assets.get_texture("textures/ceil.png").unwrap();
 
         let cam_pos_x = self.cam.pos.x;
         let cam_pos_y = self.cam.pos.y;

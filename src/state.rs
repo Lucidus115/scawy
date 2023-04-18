@@ -1,11 +1,11 @@
-use crate::{assets::Assets, Controls};
+use crate::Context;
 pub struct AppState(Vec<Box<dyn State>>);
 
 pub mod game;
 
 impl AppState {
-    pub fn new() -> Self {
-        Self(vec![Box::new(game::InGame::new())])
+    pub fn new(default_state: Box<dyn State>) -> Self {
+        Self(vec![default_state])
     }
 
     pub fn push(&mut self, state: Box<dyn State>) {
@@ -25,7 +25,7 @@ impl AppState {
 }
 
 pub trait State {
-    fn update(&mut self, controls: &Controls);
+    fn update(&mut self, ctx: &mut Context);
 
-    fn draw(&mut self, screen: &mut [u8], assets: &Assets);
+    fn draw(&mut self, ctx: &mut Context, screen: &mut [u8]);
 }

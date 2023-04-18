@@ -45,6 +45,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "ahash"
+version = "0.8.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2c99f64d1e06488f620f932677e24bc6e2897582980441ae90a671415bd7ec2f"
+dependencies = [
+ "cfg-if",
+ "getrandom",
+ "once_cell",
+ "version_check",
+]
+
+[[package]]
 name = "aho-corasick"
 version = "0.7.20"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -105,6 +117,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "28bf19c1f0a470be5fbf7522a308a05df06610252c5bcf5143e1b23f629a9a03"
 dependencies = [
  "libloading",
+]
+
+[[package]]
+name = "assets_manager"
+version = "0.10.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ac85997dab76264b243f81a991d56aa1f793ae5ef9505beb38f8d591f5db8154"
+dependencies = [
+ "ahash 0.8.3",
+ "log",
+ "parking_lot",
 ]
 
 [[package]]
@@ -275,7 +298,7 @@ version = "0.10.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0a88ebbca55d360d72e9fe78df0d22e25cd419933c9559e79dae2757f7c4d066"
 dependencies = [
- "ahash",
+ "ahash 0.7.6",
  "bevy_utils_proc_macros",
  "getrandom",
  "hashbrown",
@@ -874,7 +897,7 @@ version = "0.12.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8a9ee70c43aaf417c914396645a0fa852624801b24ebb7ae78fe8272889ac888"
 dependencies = [
- "ahash",
+ "ahash 0.7.6",
  "serde",
 ]
 
@@ -1759,6 +1782,7 @@ dependencies = [
 name = "scawy"
 version = "0.1.0"
 dependencies = [
+ "assets_manager",
  "bevy_ecs",
  "directories",
  "env_logger",

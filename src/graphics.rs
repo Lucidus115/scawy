@@ -38,11 +38,7 @@ pub struct Texture {
 
 impl Texture {
     pub(crate) fn load(path: &Path) -> Self {
-        let mut p = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        p.push("assets/");
-        p.push(path);
-
-        let Ok(im) = image::open(&p) else {
+        let Ok(im) = image::open(path) else {
             warn!("Could not find an image with the path: {:?}", path);
             return Self { width: 0, height: 0, pixels: Vec::with_capacity(0).into()};
         };

@@ -48,10 +48,14 @@ pub struct Controls {
     pub pause: bool,
 }
 
-struct Game {
+pub struct Context {
     assets: Assets,
     controls: Controls,
     input: WinitInputHelper,
+}
+
+struct Game {
+    ctx: Context,
     state: AppState,
     pixels: Pixels,
 }
@@ -63,24 +67,29 @@ impl Game {
         assets.load_texture("textures/floor.png");
         assets.load_texture("textures/ceil.png");
 
-        Self {
+        let mut ctx = Context {
             assets,
             controls: Controls::default(),
             input: WinitInputHelper::new(),
-            state: AppState::new(),
+        };
+        let default_state = Box::new(state::game::InGame::new(&mut ctx));
+
+        Self {
+            ctx,
+            state: AppState::new(default_state),
             pixels,
         }
     }
 
     fn update(&mut self) {
-        self.controls = {
-            let x = self.input.key_held(VirtualKeyCode::D) as i8
-                - self.input.key_held(VirtualKeyCode::A) as i8;
-            let y = self.input.key_held(VirtualKeyCode::S) as i8
-                - self.input.key_held(VirtualKeyCode::W) as i8;
+        self.ctx.controls = {
+            let x = self.ctx.input.key_held(VirtualKeyCode::D) as i8
+                - self.ctx.input.key_held(VirtualKeyCode::A) as i8;
+            let y = self.ctx.input.key_held(VirtualKeyCode::S) as i8
+                - self.ctx.input.key_held(VirtualKeyCode::W) as i8;
             let (left, right) = (
-                self.input.key_held(VirtualKeyCode::Left) as i8 as f32,
-                self.input.key_held(VirtualKeyCode::Right) as i8 as f32,
+                self.ctx.input.key_held(VirtualKeyCode::Left) as i8 as f32,
+                self.ctx.input.key_held(VirtualKeyCode::Right) as i8 as f32,
             );
             // let (left, right) = self.input.mouse_diff();
 
@@ -94,7 +103,7 @@ impl Game {
         };
 
         let active_state = self.state.peek();
-        active_state.update(&self.controls);
+        active_state.update(&mut self.ctx);
     }
 
     fn draw(&mut self) {
@@ -106,7 +115,7 @@ impl Game {
         }
 
         let active_state = self.state.peek();
-        active_state.draw(screen, &self.assets);
+        active_state.draw(&mut self.ctx, screen);
     }
 }
 
@@ -216,19 +225,19 @@ fn main() -> Result<(), Error> {
             frames_drawn += 1;
         },
         |g, event| {
-            if !g.game.input.update(event) {
+            if !g.game.ctx.input.update(event) {
                 return;
             }
 
-            if g.game.input.key_pressed(VirtualKeyCode::Escape)
-                || g.game.input.close_requested()
-                || g.game.input.destroyed()
+            if g.game.ctx.input.key_pressed(VirtualKeyCode::Escape)
+                || g.game.ctx.input.close_requested()
+                || g.game.ctx.input.destroyed()
             {
                 g.exit();
                 return;
             }
 
-            if let Some(size) = g.game.input.window_resized() {
+            if let Some(size) = g.game.ctx.input.window_resized() {
                 if let Err(err) = g.game.pixels.resize_surface(size.width, size.height) {
                     error!("uh oh! window resize failed: {err}");
                     g.exit();
