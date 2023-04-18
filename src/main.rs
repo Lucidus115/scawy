@@ -1,7 +1,6 @@
 use crate::prelude::*;
 use assets_manager::AssetCache;
 use glam::{vec2, Vec2};
-use graphics::Texture;
 use line_drawing::Bresenham;
 use state::AppState;
 use std::time::Instant;

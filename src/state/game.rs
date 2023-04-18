@@ -346,21 +346,21 @@ impl State for InGame {
 
                         let move_screen = (0. / trans_y) as i32;
 
-                        let screen_x = ((WIDTH as f32 / 2.) * (1. + trans_x / trans_y)) as u32;
+                        let screen_x = ((WIDTH as f32 / 2.) * (1. + trans_x / trans_y)) as i32;
                         let sprite_height = (HEIGHT as f32 / trans_y * trans.scale.y).abs() as i32;
                         let sprite_width = (HEIGHT as f32 / trans_y * trans.scale.x).abs() as i32;
 
                         let draw_start = uvec2(
-                            (-sprite_width / 2 + screen_x as i32).max(0) as u32,
+                            (-sprite_width / 2 + screen_x).max(0) as u32,
                             (-sprite_height / 2 + HEIGHT as i32 / 2 + move_screen).max(0) as u32,
                         );
                         let draw_end = uvec2(
-                            ((sprite_width / 2) as u32 + screen_x).min(WIDTH as u32 - 1),
+                            (((sprite_width / 2) + screen_x).max(0) as u32).min(WIDTH as u32 - 1),
                             (sprite_height / 2 + HEIGHT as i32 / 2 + move_screen).min(HEIGHT as i32 - 1) as u32);
 
                         for stripe in draw_start.x..draw_end.x {
-                            let tex_x = (256 * (stripe as i32 - (-sprite_width / 2 + screen_x as i32)) as u32 * tex.width() / sprite_width as u32) / 256;
-                            if !(trans_y > 0. && stripe > 0 && stripe < WIDTH as u32 && trans_y < self.z_buffer[stripe as usize]) {
+                            let tex_x = (256 * (stripe as i32 - (-sprite_width / 2 + screen_x)) as u32 * tex.width() / sprite_width as u32) / 256;
+                            if !(trans_y > 0. && stripe < WIDTH as u32 && trans_y < self.z_buffer[stripe as usize]) {
                                 continue;
                             }
                             for y in draw_start.y..draw_end.y {
