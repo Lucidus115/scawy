@@ -126,6 +126,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ac85997dab76264b243f81a991d56aa1f793ae5ef9505beb38f8d591f5db8154"
 dependencies = [
  "ahash 0.8.3",
+ "image",
  "log",
  "parking_lot",
 ]

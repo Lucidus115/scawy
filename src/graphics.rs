@@ -1,8 +1,9 @@
 use std::{
-    path::{Path, PathBuf},
-    rc::Rc,
+    path::{Path}, borrow::Cow, net::IpAddr,
 };
 
+use assets_manager::{Asset, loader::{self, Loader, ImageLoader, LoadFrom, ParseLoader}, BoxedError};
+use image::DynamicImage;
 use log::*;
 
 //pub struct Graphics;
@@ -19,7 +20,7 @@ pub fn draw_sprite(screen: &mut [u8], pos: &crate::Vec2, tex: &Texture) {
         // Merge pixels from sprite into screen
         let zipped = screen[i..i + width]
             .iter_mut()
-            .zip(&tex.pixels[s..s + width]);
+            .zip(&tex.pixels()[s..s + width]);
         for (left, &right) in zipped {
             if right > 0 {
                 *left = right;
@@ -31,33 +32,30 @@ pub fn draw_sprite(screen: &mut [u8], pos: &crate::Vec2, tex: &Texture) {
 }
 
 pub struct Texture {
-    width: u32,
-    height: u32,
-    pixels: Rc<[u8]>,
+    image: DynamicImage
+}
+
+impl From<DynamicImage> for Texture {
+    fn from(value: DynamicImage) -> Self {
+        Texture { image: value }
+    }
+}
+
+impl Asset for Texture {
+    const EXTENSIONS: &'static [&'static str] = &["png", "jpg"];
+    type Loader = LoadFrom<DynamicImage, ImageLoader>;
 }
 
 impl Texture {
-    pub(crate) fn load(path: &Path) -> Self {
-        let Ok(im) = image::open(path) else {
-            warn!("Could not find an image with the path: {:?}", path);
-            return Self { width: 0, height: 0, pixels: Vec::with_capacity(0).into()};
-        };
-        Self {
-            width: im.width(),
-            height: im.height(),
-            pixels: im.as_bytes().into(),
-        }
-    }
-
     pub fn width(&self) -> u32 {
-        self.width
+        self.image.width()
     }
 
     pub fn height(&self) -> u32 {
-        self.height
+        self.image.height()
     }
 
-    pub fn pixels(&self) -> &Rc<[u8]> {
-        &self.pixels
+    pub fn pixels(&self) -> &[u8] {
+        self.image.as_bytes()
     }
 }

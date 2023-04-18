@@ -16,7 +16,7 @@ opt-level = 3
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-assets_manager = "0.10.0"
+assets_manager = { version = "0.10.0", features = ["default", "image"]}
 winit_input_helper = "0.14.0"
 game-loop = { version = "0.10", features = ["winit"] }
 pixels = { git = "https://github.com/parasyte/pixels", branch = "main"}

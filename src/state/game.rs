@@ -1,12 +1,10 @@
-use crate::{prelude::*, state::State, Context, HEIGHT, WIDTH};
+use crate::{prelude::*, state::State, Context, HEIGHT, WIDTH, graphics::Texture};
 
 use std::borrow::Cow;
 
 use bevy_ecs::prelude::*;
 use glam::{vec2, Vec2};
 use serde::{Deserialize, Serialize};
-
-use crate::Controls;
 
 struct Camera {
     pos: Vec2,
@@ -119,9 +117,9 @@ impl State for InGame {
     }
 
     fn draw(&mut self, ctx: &mut Context, screen: &mut [u8]) {
-        let tex = ctx.assets.get_texture("textures/wall.png").unwrap();
-        let floor = ctx.assets.get_texture("textures/floor.png").unwrap();
-        let ceil = ctx.assets.get_texture("textures/ceil.png").unwrap();
+        let tex = ctx.assets.load::<Texture>("textures.wall").unwrap().read();
+        let floor = ctx.assets.load::<Texture>("textures.floor").unwrap().read();
+        let ceil = ctx.assets.load::<Texture>("textures.ceil").unwrap().read();
 
         let cam_pos_x = self.cam.pos.x;
         let cam_pos_y = self.cam.pos.y;

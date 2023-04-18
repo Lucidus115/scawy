@@ -1,6 +1,7 @@
 use crate::prelude::*;
-use assets::Assets;
+use assets_manager::AssetCache;
 use glam::{vec2, Vec2};
+use graphics::Texture;
 use line_drawing::Bresenham;
 use state::AppState;
 use std::time::Instant;
@@ -8,7 +9,6 @@ use winit_input_helper::WinitInputHelper;
 
 pub mod components;
 
-mod assets;
 mod graphics;
 mod physics;
 mod state;
@@ -49,7 +49,7 @@ pub struct Controls {
 }
 
 pub struct Context {
-    assets: Assets,
+    assets: AssetCache,
     controls: Controls,
     input: WinitInputHelper,
 }
@@ -62,10 +62,10 @@ struct Game {
 
 impl Game {
     fn new(pixels: Pixels) -> Self {
-        let mut assets = Assets::new();
-        assets.load_texture("textures/wall.png");
-        assets.load_texture("textures/floor.png");
-        assets.load_texture("textures/ceil.png");
+        let assets = AssetCache::new("assets").expect("Path is not a valid directory");
+        assets.load::<Texture>("textures.wall").unwrap();
+        assets.load::<Texture>("textures.floor").unwrap();
+        assets.load::<Texture>("textures.ceil").unwrap();
 
         let mut ctx = Context {
             assets,
