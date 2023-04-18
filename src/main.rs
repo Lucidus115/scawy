@@ -63,9 +63,6 @@ struct Game {
 impl Game {
     fn new(pixels: Pixels) -> Self {
         let assets = AssetCache::new("assets").expect("Path is not a valid directory");
-        assets.load::<Texture>("textures.wall").unwrap();
-        assets.load::<Texture>("textures.floor").unwrap();
-        assets.load::<Texture>("textures.ceil").unwrap();
 
         let mut ctx = Context {
             assets,

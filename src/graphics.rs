@@ -1,8 +1,9 @@
-use std::{
-    path::{Path}, borrow::Cow, net::IpAddr,
-};
+use std::{borrow::Cow, net::IpAddr, path::Path};
 
-use assets_manager::{Asset, loader::{self, Loader, ImageLoader, LoadFrom, ParseLoader}, BoxedError};
+use assets_manager::{
+    loader::{self, ImageLoader, LoadFrom, Loader, ParseLoader},
+    Asset, BoxedError,
+};
 use image::DynamicImage;
 use log::*;
 
@@ -32,7 +33,7 @@ pub fn draw_sprite(screen: &mut [u8], pos: &crate::Vec2, tex: &Texture) {
 }
 
 pub struct Texture {
-    image: DynamicImage
+    image: DynamicImage,
 }
 
 impl From<DynamicImage> for Texture {

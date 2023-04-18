@@ -1,7 +1,8 @@
-use crate::{prelude::*, state::State, Context, HEIGHT, WIDTH, graphics::Texture};
+use crate::{graphics::Texture, prelude::*, state::State, Context, HEIGHT, WIDTH};
 
 use std::borrow::Cow;
 
+use assets_manager::BoxedError;
 use bevy_ecs::prelude::*;
 use glam::{vec2, Vec2};
 use serde::{Deserialize, Serialize};
@@ -47,6 +48,18 @@ impl InGame {
         ));
 
         setup_map(&mut world);
+
+        let load_assets = || -> Result<(), BoxedError> {
+            ctx.assets.load::<Texture>("textures.wall")?;
+            ctx.assets.load::<Texture>("textures.floor")?;
+            ctx.assets.load::<Texture>("textures.ceil")?;
+
+            Ok(())
+        };
+        
+        if load_assets().is_err() {
+            warn!("Uh oh! sorry guys. No preloaded assets for you.")
+        }
 
         Self {
             world,
@@ -117,7 +130,6 @@ impl State for InGame {
     }
 
     fn draw(&mut self, ctx: &mut Context, screen: &mut [u8]) {
-        let tex = ctx.assets.load::<Texture>("textures.wall").unwrap().read();
         let floor = ctx.assets.load::<Texture>("textures.floor").unwrap().read();
         let ceil = ctx.assets.load::<Texture>("textures.ceil").unwrap().read();
 
@@ -247,6 +259,12 @@ impl State for InGame {
             let tile = map
                 .get_tile(tile_pos.x as u32, tile_pos.y as u32)
                 .expect("tile should have been found already");
+            let tex_path = format!("textures.{}", tile_to_texture(*tile));
+            let tex = ctx
+                .assets
+                .load::<Texture>(tex_path.as_str())
+                .expect("Failed to find texture from path")
+                .read();
 
             // texture stuff
             let mut wall_x = if !side {
@@ -380,4 +398,11 @@ fn setup_map(world: &mut World) {
 
 fn idx(x: u32, y: u32, width: u32) -> usize {
     ((y * width) + x) as usize
+}
+
+fn tile_to_texture(tile: TileId) -> &'static str {
+    match tile {
+        1 => "ceil",
+        _ => "wall",
+    }
 }
