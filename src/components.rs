@@ -52,7 +52,6 @@ pub struct Player;
 
 #[derive(Component)]
 pub struct Sprite {
-    pub width: f32,
     pub height: f32,
     pub color: [u8; 4],
     pub texture: String,

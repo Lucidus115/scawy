@@ -7,6 +7,7 @@ use bevy_ecs::prelude::*;
 use glam::{vec2, Vec2};
 use serde::{Deserialize, Serialize};
 
+#[derive(Debug)]
 struct Camera {
     pos: Vec2,
     dir: Vec2,
@@ -52,7 +53,6 @@ impl InGame {
                 ..Default::default()
             },
             Sprite {
-                width: 64.,
                 height: 64.,
                 color: [255, 255, 255, 255],
                 texture: String::from("owo"),
@@ -344,7 +344,13 @@ impl State for InGame {
                         let trans_y =
                             inverse * (-self.cam.plane.y * pos.x + self.cam.plane.x * pos.y);
 
-                        let move_screen = (0. / trans_y) as i32;
+                        // Prevent number from being too low
+                        if trans_y.abs() < 0.001 {
+                            println!("Yeeeh");
+                            return;
+                        }
+
+                        let move_screen = (-sprite.height / trans_y) as i32;
 
                         let screen_x = ((WIDTH as f32 / 2.) * (1. + trans_x / trans_y)) as i32;
                         let sprite_height = (HEIGHT as f32 / trans_y * trans.scale.y).abs() as i32;
