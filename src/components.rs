@@ -4,11 +4,15 @@ use bevy_ecs::prelude::*;
 #[derive(Component)]
 pub struct Transform {
     pub pos: Vec2,
+    pub scale: Vec2,
 }
 
 impl Default for Transform {
     fn default() -> Self {
-        Self { pos: Vec2::ZERO }
+        Self {
+            pos: Vec2::ZERO,
+            scale: Vec2::splat(1.),
+        }
     }
 }
 
