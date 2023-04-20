@@ -366,8 +366,8 @@ impl State for InGame {
                             (-sprite_height / 2 + HEIGHT as i32 / 2 + move_screen).max(0) as u32,
                         );
                         let draw_end = uvec2(
-                            (((sprite_width / 2) + screen_x).max(0) as u32).min(WIDTH as u32 - 1),
-                            (sprite_height / 2 + HEIGHT as i32 / 2 + move_screen).min(HEIGHT as i32 - 1) as u32);
+                            (((sprite_width / 2) + screen_x).max(0) as u32).min(WIDTH as u32),
+                            (sprite_height / 2 + HEIGHT as i32 / 2 + move_screen).min(HEIGHT as i32) as u32);
 
                         for x in draw_start.x..draw_end.x {
                             let tex_x = (256 * (x as i32 - (-sprite_width / 2 + screen_x)) as u32 * tex.width() / sprite_width as u32) / 256;
