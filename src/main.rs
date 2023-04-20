@@ -23,8 +23,8 @@ use pixels::{
     Error, Pixels, PixelsBuilder, SurfaceTexture,
 };
 
-const WIDTH: usize = 256;
-const HEIGHT: usize = 144;
+const WIDTH: usize = 384;
+const HEIGHT: usize = 216;
 const TITLE: &str = "Scawy";
 
 pub mod prelude {
@@ -57,6 +57,7 @@ struct Game {
     ctx: Context,
     state: AppState,
     pixels: Pixels,
+    frame_count: u32,
 }
 
 impl Game {
@@ -74,6 +75,7 @@ impl Game {
             ctx,
             state: AppState::new(default_state),
             pixels,
+            frame_count: 0
         }
     }
 
@@ -100,6 +102,7 @@ impl Game {
 
         let active_state = self.state.peek();
         active_state.update(&mut self.ctx);
+        self.frame_count += 1;
     }
 
     fn draw(&mut self) {
