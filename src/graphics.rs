@@ -1,44 +1,77 @@
-use std::{borrow::Cow, net::IpAddr, path::Path};
+use std::ops::{Div, DivAssign};
 
 use assets_manager::{
-    loader::{self, ImageLoader, LoadFrom, Loader, ParseLoader},
-    Asset, BoxedError,
+    loader::{ImageLoader, LoadFrom},
+    Asset,
 };
 use image::DynamicImage;
-use log::*;
 
-//pub struct Graphics;
+pub struct Color {
+    pub r: u8,
+    pub g: u8,
+    pub b: u8,
+    pub a: u8,
+}
 
-pub fn draw_sprite(screen: &mut [u8], pos: &crate::Vec2, tex: &Texture) {
-    let width = tex.width() as usize * 4;
+impl Color {
+    pub fn from_rgb(r: u8, g: u8, b: u8) -> Self {
+        Self { r, g, b, a: 255 }
+    }
 
-    let mut s = 0;
-    for y in 0..tex.height() as usize {
-        let i = pos.x.floor() as usize * 4
-            + pos.y.floor() as usize * crate::WIDTH * 4
-            + y * crate::WIDTH * 4;
+    pub fn from_rgba(r: u8, g: u8, b: u8, a: u8) -> Self {
+        Self { r, g, b, a }
+    }
 
-        // Merge pixels from sprite into screen
-        let zipped = screen[i..i + width]
-            .iter_mut()
-            .zip(&tex.pixels()[s..s + width]);
-        for (left, &right) in zipped {
-            if right > 0 {
-                *left = right;
-            }
+    pub fn blend(&mut self, color: Color) {
+        let inner_blend = |self_val: &mut u8, val: u8| {
+            let alpha = color.a as f32 / 255.;
+            *self_val = (val as f32 - (1. - alpha) * *self_val as f32 / alpha) as u8;
+        };
+        inner_blend(&mut self.r, color.r);
+        inner_blend(&mut self.g, color.g);
+        inner_blend(&mut self.b, color.b);
+    }
+
+    pub fn as_vec(&self) -> Vec<u8> {
+        vec![self.r, self.g, self.b, self.a]
+    }
+}
+
+impl Default for Color {
+    fn default() -> Self {
+        Self {
+            r: 255,
+            g: 255,
+            b: 255,
+            a: 255,
         }
+    }
+}
 
-        s += width;
+impl From<&[u8]> for Color {
+    fn from(value: &[u8]) -> Self {
+        Self {
+            r: value[0],
+            g: value[1],
+            b: value[2],
+            a: value[3],
+        }
     }
 }
 
 pub struct Texture {
-    image: DynamicImage,
+    width: u32,
+    height: u32,
+    bytes: Vec<u8>,
 }
 
 impl From<DynamicImage> for Texture {
     fn from(value: DynamicImage) -> Self {
-        Texture { image: value }
+        Texture {
+            width: value.width(),
+            height: value.height(),
+            bytes: value.as_bytes().into(),
+        }
     }
 }
 
@@ -49,14 +82,19 @@ impl Asset for Texture {
 
 impl Texture {
     pub fn width(&self) -> u32 {
-        self.image.width()
+        self.width
     }
 
     pub fn height(&self) -> u32 {
-        self.image.height()
+        self.height
     }
 
-    pub fn pixels(&self) -> &[u8] {
-        self.image.as_bytes()
+    pub fn pixel(&self, idx: usize) -> Color {
+        Color {
+            r: self.bytes[idx],
+            g: self.bytes[idx + 1],
+            b: self.bytes[idx + 2],
+            a: self.bytes[idx + 3],
+        }
     }
 }

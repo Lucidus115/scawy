@@ -1,4 +1,9 @@
-use crate::{graphics::Texture, prelude::*, state::State, Context, HEIGHT, WIDTH};
+use crate::{
+    graphics::{Color, Texture},
+    prelude::*,
+    state::State,
+    Context, HEIGHT, WIDTH,
+};
 
 use std::borrow::Cow;
 
@@ -53,9 +58,8 @@ impl InGame {
                 ..Default::default()
             },
             Sprite {
-                height: 0.,
-                color: [255, 255, 255, 255],
                 texture: String::from("owo"),
+                ..Default::default()
             },
         ));
 
@@ -189,21 +193,21 @@ impl State for InGame {
                     // floor
                     {
                         let idx = idx(tex_coords.x * 4, tex_coords.y * 4, floor.width());
-                        let rgba = &mut floor.pixels()[idx..idx + 4].to_vec();
+                        let mut rgba = floor.pixel(idx).as_vec();
                         rgba.iter_mut().take(3).for_each(|val| *val /= 2);
 
                         let i = x * 4 + y * WIDTH * 4;
-                        screen[i..i + 4].copy_from_slice(rgba);
+                        screen[i..i + 4].copy_from_slice(&rgba);
                     }
 
                     // ceiling
                     {
                         let idx = idx(tex_coords.x * 4, tex_coords.y * 4, ceil.width());
-                        let rgba = &mut ceil.pixels()[idx..idx + 4].to_vec();
+                        let mut rgba = ceil.pixel(idx).as_vec();
                         rgba.iter_mut().take(3).for_each(|val| *val /= 2);
 
                         let i = x * 4 + (HEIGHT - y - 1) * WIDTH * 4;
-                        screen[i..i + 4].copy_from_slice(rgba);
+                        screen[i..i + 4].copy_from_slice(&rgba);
                     }
                 }
             }
@@ -307,14 +311,14 @@ impl State for InGame {
 
                     // Multiply tex coordinates by 4 to ensure index rgba is in correct order
                     let idx = idx(tex_x * 4, tex_y * 4, tex.width());
-                    let rgba = &mut tex.pixels()[idx..idx + 4].to_vec();
+                    let mut rgba = tex.pixel(idx).as_vec();
 
                     if side {
                         rgba.iter_mut().take(3).for_each(|val| *val /= 2);
                     }
 
                     let i = x * 4 + y as usize * WIDTH * 4;
-                    screen[i..i + 4].copy_from_slice(rgba);
+                    screen[i..i + 4].copy_from_slice(&rgba);
                 }
 
                 // sprites
@@ -336,7 +340,7 @@ impl State for InGame {
                             return;
                         };
                         let tex = tex.read();
-                        
+
                         // sprite position relative to camera
                         let pos = trans.pos - self.cam.pos;
                         let inverse = 1.
@@ -373,22 +377,18 @@ impl State for InGame {
                             for y in draw_start.y..draw_end.y {
                                 let d = ((y as i32 - move_screen) * 256 - HEIGHT as i32 * 128 + sprite_height * 128) as u32;
                                 let tex_y = (d * tex.height()) / sprite_height as u32 / 256;
-                                
                                 let idx = idx(tex_x * 4, tex_y * 4, tex.width());
-                                let rgba = &mut tex.pixels()[idx..idx + 4].to_vec();
-                                let alpha = rgba[3];
+                                let color = tex.pixel(idx);
 
-                                if alpha == 0 {
+                                if color.a == 0 {
                                     continue;
                                 }
+
                                 let i = x as usize * 4 + y as usize * WIDTH * 4;
 
-                                let mut rgba_avg = screen[i..i + 4].to_vec();
-                                rgba_avg.iter_mut().enumerate().take(3).for_each(|(i, val)| {
-                                    let alpha = alpha as f32 / 255.;
-                                    *val = ((rgba[i] as f32 - (1. - alpha) * *val as f32) / alpha) as u8;
-                                });
-                                screen[i..i + 4].copy_from_slice(&rgba_avg);
+                                let mut prev_color = Color::from(&screen[i..i + 4]);
+                                prev_color.blend(color);
+                                screen[i..i + 4].copy_from_slice(&prev_color.as_vec());
                             }
                         }
                     });

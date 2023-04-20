@@ -75,7 +75,7 @@ impl Game {
             ctx,
             state: AppState::new(default_state),
             pixels,
-            frame_count: 0
+            frame_count: 0,
         }
     }
 

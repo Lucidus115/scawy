@@ -1,4 +1,4 @@
-use crate::prelude::*;
+use crate::{graphics::Color, prelude::*};
 use bevy_ecs::prelude::*;
 
 #[derive(Component)]
@@ -50,9 +50,9 @@ impl Movement {
 #[derive(Component)]
 pub struct Player;
 
-#[derive(Component)]
+#[derive(Component, Default)]
 pub struct Sprite {
     pub height: f32,
-    pub color: [u8; 4],
+    pub color: Color,
     pub texture: String,
 }
