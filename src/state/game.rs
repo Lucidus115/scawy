@@ -193,7 +193,7 @@ impl State for InGame {
                     // floor
                     {
                         let idx = idx(tex_coords.x * 4, tex_coords.y * 4, floor.width());
-                        let mut rgba = floor.pixel(idx).as_vec();
+                        let mut rgba = floor.pixel(idx).slice();
                         rgba.iter_mut().take(3).for_each(|val| *val /= 2);
 
                         let i = x * 4 + y * WIDTH * 4;
@@ -203,7 +203,7 @@ impl State for InGame {
                     // ceiling
                     {
                         let idx = idx(tex_coords.x * 4, tex_coords.y * 4, ceil.width());
-                        let mut rgba = ceil.pixel(idx).as_vec();
+                        let mut rgba = ceil.pixel(idx).slice();
                         rgba.iter_mut().take(3).for_each(|val| *val /= 2);
 
                         let i = x * 4 + (HEIGHT - y - 1) * WIDTH * 4;
@@ -311,7 +311,7 @@ impl State for InGame {
 
                     // Multiply tex coordinates by 4 to ensure index rgba is in correct order
                     let idx = idx(tex_x * 4, tex_y * 4, tex.width());
-                    let mut rgba = tex.pixel(idx).as_vec();
+                    let mut rgba = tex.pixel(idx).slice();
 
                     if side {
                         rgba.iter_mut().take(3).for_each(|val| *val /= 2);
@@ -388,7 +388,7 @@ impl State for InGame {
 
                                 let mut prev_color = Color::from(&screen[i..i + 4]);
                                 prev_color.blend(color);
-                                screen[i..i + 4].copy_from_slice(&prev_color.as_vec());
+                                screen[i..i + 4].copy_from_slice(&prev_color.slice());
                             }
                         }
                     });

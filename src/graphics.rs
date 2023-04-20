@@ -1,5 +1,3 @@
-use std::ops::{Div, DivAssign};
-
 use assets_manager::{
     loader::{ImageLoader, LoadFrom},
     Asset,
@@ -32,8 +30,8 @@ impl Color {
         inner_blend(&mut self.b, color.b);
     }
 
-    pub fn as_vec(&self) -> Vec<u8> {
-        vec![self.r, self.g, self.b, self.a]
+    pub fn slice(&self) -> [u8; 4] {
+        [self.r, self.g, self.b, self.a]
     }
 }
 
