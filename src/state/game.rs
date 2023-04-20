@@ -53,7 +53,7 @@ impl InGame {
                 ..Default::default()
             },
             Sprite {
-                height: 64.,
+                height: 0.,
                 color: [255, 255, 255, 255],
                 texture: String::from("owo"),
             },
@@ -319,7 +319,9 @@ impl State for InGame {
 
                 // sprites
                 self.z_buffer[x] = perp_wall_dist;
-                let mut query = world.query::<(&components::Transform, &components::Sprite)>();
+            }
+
+            let mut query = world.query::<(&components::Transform, &components::Sprite)>();
                 query
                     .iter(world)
                     .max_by(|(trans_a, _), (trans_b, _)| {
@@ -346,7 +348,6 @@ impl State for InGame {
 
                         // Prevent number from being too low
                         if trans_y.abs() < 0.001 {
-                            println!("Yeeeh");
                             return;
                         }
 
@@ -364,9 +365,9 @@ impl State for InGame {
                             (((sprite_width / 2) + screen_x).max(0) as u32).min(WIDTH as u32 - 1),
                             (sprite_height / 2 + HEIGHT as i32 / 2 + move_screen).min(HEIGHT as i32 - 1) as u32);
 
-                        for stripe in draw_start.x..draw_end.x {
-                            let tex_x = (256 * (stripe as i32 - (-sprite_width / 2 + screen_x)) as u32 * tex.width() / sprite_width as u32) / 256;
-                            if !(trans_y > 0. && stripe < WIDTH as u32 && trans_y < self.z_buffer[stripe as usize]) {
+                        for x in draw_start.x..draw_end.x {
+                            let tex_x = (256 * (x as i32 - (-sprite_width / 2 + screen_x)) as u32 * tex.width() / sprite_width as u32) / 256;
+                            if !(trans_y > 0. && x < WIDTH as u32 && trans_y < self.z_buffer[x as usize]) {
                                 continue;
                             }
                             for y in draw_start.y..draw_end.y {
@@ -380,7 +381,7 @@ impl State for InGame {
                                 if alpha == 0 {
                                     continue;
                                 }
-                                let i = stripe as usize * 4 + y as usize * WIDTH * 4;
+                                let i = x as usize * 4 + y as usize * WIDTH * 4;
 
                                 let mut rgba_avg = screen[i..i + 4].to_vec();
                                 rgba_avg.iter_mut().enumerate().take(3).for_each(|(i, val)| {
@@ -391,7 +392,6 @@ impl State for InGame {
                             }
                         }
                     });
-            }
         });
     }
 }
