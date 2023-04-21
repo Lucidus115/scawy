@@ -1,4 +1,4 @@
-use crate::{prelude::*, map};
+use crate::{map, prelude::*};
 use bevy_ecs::prelude::*;
 
 pub fn apply_movement(

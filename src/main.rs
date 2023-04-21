@@ -6,12 +6,13 @@ use state::AppState;
 use std::time::Instant;
 use winit_input_helper::WinitInputHelper;
 
+pub mod astar;
 pub mod components;
+pub mod physics;
 
 mod graphics;
 mod map;
 mod math;
-mod physics;
 mod state;
 
 use game_loop::{
@@ -32,6 +33,7 @@ const TITLE: &str = "Scawy";
 pub mod prelude {
     pub use crate::components;
     pub use crate::math::*;
+    pub use crate::physics;
     pub use log::*;
 
     pub const FPS: u32 = 144;

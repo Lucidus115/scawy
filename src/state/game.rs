@@ -1,13 +1,13 @@
 use crate::{
     graphics::{Color, Texture},
+    idx, map,
     prelude::*,
     state::State,
-    Context, HEIGHT, WIDTH, map, idx,
+    Context, HEIGHT, WIDTH,
 };
 
 use assets_manager::BoxedError;
 use bevy_ecs::prelude::*;
-use glam::{vec2, Vec2};
 
 #[derive(Debug)]
 struct Camera {
@@ -35,30 +35,7 @@ pub struct InGame {
 
 impl InGame {
     pub fn new(ctx: &mut Context) -> Self {
-        use components::*;
         let mut world = World::default();
-
-        // Spawn player
-        world.spawn((
-            Transform {
-                pos: vec2(14., 5.),
-                ..Default::default()
-            },
-            Movement::with_speed(0.2),
-            Player,
-        ));
-
-        // Spawn test sprite
-        world.spawn((
-            Transform {
-                pos: vec2(11., 5.),
-                ..Default::default()
-            },
-            Sprite {
-                texture: String::from("owo"),
-                ..Default::default()
-            },
-        ));
 
         let mut schedule = Schedule::default();
         schedule.add_systems((
@@ -448,48 +425,31 @@ impl State for InGame {
 }
 
 fn setup_map(world: &mut World) {
-    // #[rustfmt::skip]
-    // let (tiles, width, height) = (
-    //     &[
-    //         1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-    //         1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
-    //         1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
-    //         1, 0, 0, 2, 2, 2, 2, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
-    //         1, 0, 0, 2, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
-    //         1, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
-    //         1, 0, 0, 2, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
-    //         1, 0, 0, 2, 2, 2, 0, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
-    //         1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
-    //         1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
-    //         1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
-    //         1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
-    //         1, 0, 0, 0, 0, 0, 0, 0, 3, 0, 3, 3, 3, 3, 3, 3, 3, 3, 0, 0, 0, 0, 0, 1,
-    //         1, 0, 0, 0, 0, 0, 0, 0, 3, 0, 3, 0, 0, 0, 3, 3, 3, 3, 0, 0, 0, 0, 0, 1,
-    //         1, 0, 0, 0, 0, 0, 0, 0, 3, 0, 3, 3, 3, 0, 0, 0, 0, 3, 0, 0, 0, 0, 0, 1,
-    //         1, 0, 0, 0, 0, 0, 0, 0, 3, 0, 0, 0, 3, 0, 3, 3, 3, 3, 0, 0, 0, 0, 0, 1,
-    //         1, 0, 0, 0, 0, 0, 0, 0, 3, 0, 3, 0, 3, 0, 0, 0, 0, 3, 0, 0, 0, 0, 0, 1,
-    //         1, 0, 0, 0, 0, 0, 0, 0, 3, 0, 3, 3, 3, 0, 3, 3, 0, 3, 0, 0, 0, 0, 0, 1,
-    //         1, 0, 0, 0, 0, 0, 0, 0, 3, 0, 0, 0, 0, 0, 0, 3, 0, 3, 0, 0, 0, 0, 0, 1,
-    //         1, 0, 0, 0, 0, 0, 0, 0, 3, 3, 3, 3, 3, 3, 3, 3, 0, 3, 0, 0, 0, 0, 0, 1,
-    //         1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
-    //         1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
-    //         1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
-    //         1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-    //     ], 
-    //     24, 
-    //     24
-    // );
-    // let mut map = Map::new(width, height);
+    let gen = map::MapGenerator::new(rand::random());
 
-    // for y in 0..height {
-    //     for x in 0..width {
-    //         let tile = tiles[idx(x, y, width)];
+    // Spawn player
+    world.spawn((
+        components::Transform {
+            pos: gen.spawn,
+            ..Default::default()
+        },
+        components::Movement::with_speed(0.2),
+        components::Player,
+    ));
 
-    //         map.set_tile(x, y, tile);
-    //     }
-    // }
+    // Spawn test sprite
+    world.spawn((
+        components::Transform {
+            pos: gen.spawn,
+            ..Default::default()
+        },
+        components::Sprite {
+            texture: String::from("owo"),
+            ..Default::default()
+        },
+    ));
 
-    //world.insert_resource(map);
+    world.insert_resource(gen.map);
 }
 
 fn tile_to_texture(tile: map::Tile) -> &'static str {
