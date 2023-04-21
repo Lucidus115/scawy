@@ -1,4 +1,4 @@
-use crate::{prelude::*, state::game::Map};
+use crate::{prelude::*, map};
 use bevy_ecs::prelude::*;
 
 pub fn apply_movement(
@@ -11,7 +11,7 @@ pub fn apply_movement(
 }
 
 pub fn detect_collision(
-    map: Res<Map>,
+    map: Res<map::Map>,
     mut move_query: Query<(&components::Transform, &mut components::Movement)>,
 ) {
     // Reduction of collider size to make movement a bit easier

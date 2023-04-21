@@ -8,6 +8,7 @@ use winit_input_helper::WinitInputHelper;
 
 pub mod components;
 
+mod map;
 mod graphics;
 mod physics;
 mod state;
@@ -163,6 +164,10 @@ pub fn in_frustum(x: f32, y: f32, width: f32, height: f32) -> bool {
         Vec2::ZERO,
         vec2(WIDTH as f32, HEIGHT as f32),
     )
+}
+
+pub fn idx(x: u32, y: u32, width: u32) -> usize {
+    ((y * width) + x) as usize
 }
 
 fn main() -> Result<(), Error> {
