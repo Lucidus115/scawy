@@ -69,7 +69,7 @@ impl MapGenerator {
 
             // Connect
             let neighbor =
-                (i as i32 + rng.gen_range(-1..2).min(rooms.len() as i32 - 1).max(0)) as usize;
+                (i as i32 + rng.gen_range(-1..2).min(rooms.len() as i32 - 1 - i as i32).max(0)) as usize;
             let neighbor = &rooms[neighbor];
             let path = astar::navigate(
                 vec2(room.x as f32, room.y as f32),

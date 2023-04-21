@@ -52,7 +52,7 @@ pub fn navigate(start: Vec2, target: Vec2) -> Vec<Vec2> {
             break;
         }
 
-        for neighbor in neighbor_points(&current.pos) {
+        for neighbor in neighbor_points(current.pos) {
             let cost_to_neighbor = g_cost[&current.pos] + heuristic(&current.pos, &neighbor);
 
             // Initialize neighbor
@@ -83,21 +83,13 @@ pub fn navigate(start: Vec2, target: Vec2) -> Vec<Vec2> {
     path
 }
 
-fn neighbor_points(point: &IVec2) -> Vec<IVec2> {
-    let mut vec = Vec::new();
-
-    for y in -1..2 {
-        for x in -1..2 {
-            if x == 0 && y == 0 {
-                continue;
-            }
-
-            let neighbor = *point + IVec2::new(x, y);
-            vec.push(neighbor);
-        }
-    }
-
-    vec
+fn neighbor_points(point: IVec2) -> Vec<IVec2> {
+    vec![
+        ivec2(-1, 0) + point,
+        ivec2(1, 0) + point,
+        ivec2(0, -1) + point,
+        ivec2(0, 1) + point,
+    ]
 }
 
 fn heuristic(a: &IVec2, b: &IVec2) -> i32 {

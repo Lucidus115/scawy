@@ -425,7 +425,9 @@ impl State for InGame {
 }
 
 fn setup_map(world: &mut World) {
-    let gen = map::MapGenerator::new(rand::random());
+    let seed: u64 = rand::random();
+    println!("{seed}");
+    let gen = map::MapGenerator::new(2480119784660223480);
 
     // Spawn player
     world.spawn((
