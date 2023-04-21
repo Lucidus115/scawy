@@ -8,8 +8,9 @@ use winit_input_helper::WinitInputHelper;
 
 pub mod components;
 
-mod map;
 mod graphics;
+mod map;
+mod math;
 mod physics;
 mod state;
 
@@ -30,7 +31,7 @@ const TITLE: &str = "Scawy";
 
 pub mod prelude {
     pub use crate::components;
-    pub use glam::*;
+    pub use crate::math::*;
     pub use log::*;
 
     pub const FPS: u32 = 144;
@@ -95,7 +96,9 @@ impl Game {
 
             let debug_zoom = (self.ctx.controls.debug_zoom
                 + (self.ctx.input.key_held(VirtualKeyCode::Key2) as i8
-                    - self.ctx.input.key_held(VirtualKeyCode::Key1) as i8) as f32).max(1.);
+                    - self.ctx.input.key_held(VirtualKeyCode::Key1) as i8)
+                    as f32)
+                .max(1.);
 
             Controls {
                 x: x as f32,
