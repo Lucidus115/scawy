@@ -42,9 +42,10 @@ pub struct Controls {
     pub y: f32,
     pub left: f32,
     pub right: f32,
-    pub action: bool,
     pub interact: bool,
     pub pause: bool,
+    pub debug_view: bool,
+    pub debug_zoom: f32,
 }
 
 pub struct Context {
@@ -91,11 +92,18 @@ impl Game {
             );
             // let (left, right) = self.input.mouse_diff();
 
+            let debug_zoom = (self.ctx.controls.debug_zoom
+                + (self.ctx.input.key_held(VirtualKeyCode::Key2) as i8
+                    - self.ctx.input.key_held(VirtualKeyCode::Key1) as i8) as f32).max(1.);
+
             Controls {
                 x: x as f32,
                 y: y as f32,
                 left,
                 right,
+                interact: self.ctx.input.key_pressed(VirtualKeyCode::E),
+                debug_view: self.ctx.input.key_held(VirtualKeyCode::Tab),
+                debug_zoom,
                 ..Default::default()
             }
         };
@@ -118,7 +126,7 @@ impl Game {
     }
 }
 
-pub fn draw_line(screen: &mut [u8], p1: &Vec2, p2: &Vec2, color: [u8; 4]) {
+pub fn draw_line(screen: &mut [u8], p1: &Vec2, p2: &Vec2, color: graphics::Color) {
     let p1 = (p1.x as i64, p1.y as i64);
     let p2 = (p2.x as i64, p2.y as i64);
 
@@ -133,11 +141,11 @@ pub fn draw_line(screen: &mut [u8], p1: &Vec2, p2: &Vec2, color: [u8; 4]) {
 
         let i = x * 4 + y * WIDTH * 4;
 
-        screen[i..i + 4].copy_from_slice(&color);
+        screen[i..i + 4].copy_from_slice(&color.slice());
     }
 }
 
-pub fn draw_rect(screen: &mut [u8], p1: &Vec2, p2: &Vec2, color: [u8; 4]) {
+pub fn draw_rect(screen: &mut [u8], p1: &Vec2, p2: &Vec2, color: graphics::Color) {
     let p2 = vec2(p2.x - 1., p2.y - 1.);
     let p3 = vec2(p1.x, p2.y);
     let p4 = vec2(p2.x, p1.y);
