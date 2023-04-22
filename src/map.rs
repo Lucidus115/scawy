@@ -1,3 +1,5 @@
+use std::{default, fs::File};
+
 use crate::{astar, idx, prelude::*};
 use bevy_ecs::system::Resource;
 use rand::{rngs::StdRng, Rng, SeedableRng};
@@ -71,19 +73,16 @@ impl MapGenerator {
         const MIN_TUNNEL_LEN: u32 = 3;
         const MAX_TUNNEL_LEN: u32 = 7;
 
-        const START: Room = Room {
-            prefab: "
-            ##+###########
-            ##-###-------#
-            ##---D---@---#
-            ##-###-------#
-            ##+###########
-            ",
-            width: 14,
-            height: 5,
-        };
-
-        let (start_room, pos) = (START, UVec2::splat(SIZE / 2));
+        let room_defs = RoomDefs::load();
+        let possible_starts: Vec<&Room> = room_defs
+            .rooms
+            .iter()
+            .filter(|room| room.prefab.contains('@'))
+            .collect();
+        let start_room = possible_starts
+            .get(rng.gen_range(0..possible_starts.len()))
+            .expect("Uh oh. There are no rooms to start in");
+        let pos = UVec2::splat(SIZE / 2);
 
         // Place selected room
         self.place_room(start_room, pos);
@@ -103,30 +102,44 @@ impl MapGenerator {
         }
 
         let connector = connectors[rng.gen_range(0..connectors.len())];
-        let connector_pos_a = uvec2(
-            (connector as u32 % start_room.width) + pos.x,
-            (connector as u32 / start_room.height) + pos.y
-        );
+        // let connector_pos_a = uvec2(
+        //     (connector as u32 % start_room.width) + pos.x,
+        //     (connector as u32 / start_room.height) + pos.y
+        // );
 
         //TODO Carve tunnel from connector a to connector b using astar
         let tunnel_len = rng.gen_range(MIN_TUNNEL_LEN..MAX_TUNNEL_LEN);
 
         //let new_room = ROOM_SMALL;
-
     }
 
-    fn place_room(&mut self, room: Room, pos: UVec2) {
-        let chars: Vec<char> = room.prefab.chars().filter(|c| !c.is_whitespace()).collect();
+    fn place_room(&mut self, room: &Room, pos: UVec2) {
+        let mut height = 0;
+        let mut width = 0;
+        let chars: Vec<char> = room
+            .prefab
+            .chars()
+            .filter(|c| {
+                if !c.is_whitespace() {
+                    width += 1;
+                    return true;
+                }
+                if *c == '\n' {
+                    height += 1;
+                }
+                false
+            })
+            .collect();
 
         let mut i = 0;
-        for y in 0..room.height {
-            for x in 0..room.width {
+        for y in 0..height - 1 {
+            for x in 0..width / (height - 1) {
                 let tile = match chars[i] {
                     '-' => 0,
                     '@' => {
                         self.spawn = vec2((pos.x + x) as f32 + 0.5, (pos.y + y) as f32 + 0.5);
                         0
-                    },
+                    }
                     'D' => 0,
                     _ => 1,
                 };
@@ -138,20 +151,19 @@ impl MapGenerator {
     }
 }
 
-#[derive(Clone, Copy, PartialEq)]
+#[derive(Clone, serde::Deserialize, PartialEq)]
 struct Room {
-    prefab: &'static str,
-    width: u32,
-    height: u32,
+    prefab: String,
 }
 
-impl Room {
-    // fn intersect(&self, room: &Room) -> bool {
-    //     physics::collide(
-    //         vec2(self.x as f32, self.y as f32),
-    //         vec2(self.width as f32, self.height as f32),
-    //         vec2(room.x as f32, room.y as f32),
-    //         vec2(room.width as f32, room.height as f32),
-    //     )
-    // }
+#[derive(Clone, serde::Deserialize, PartialEq)]
+struct RoomDefs {
+    rooms: Vec<Room>,
+}
+
+impl RoomDefs {
+    fn load() -> Self {
+        let file = File::open("assets/rooms.ron").expect("Failed to open or could not find file");
+        ron::de::from_reader(file).expect("Could not load rooms")
+    }
 }
