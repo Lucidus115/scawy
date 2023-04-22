@@ -6,7 +6,13 @@ use rand::{rngs::StdRng, Rng, SeedableRng};
 
 const SIZE: u32 = 128;
 
-pub type Tile = u32;
+#[derive(Clone, Copy, PartialEq)]
+pub enum Tile {
+    Empty,
+    Wall,
+    // Door state with a float that determines how open the door is
+    Door(f32),
+}
 
 #[derive(Resource)]
 pub struct Map {
@@ -18,7 +24,7 @@ pub struct Map {
 impl Map {
     pub fn new(width: u32, height: u32) -> Self {
         Self {
-            tiles: vec![0; (width * height) as usize],
+            tiles: vec![Tile::Empty; (width * height) as usize],
             width,
             height,
         }
@@ -43,7 +49,7 @@ impl Map {
         true
     }
 
-    pub fn get_tile(&self, x: u32, y: u32) -> Option<&u32> {
+    pub fn get_tile(&self, x: u32, y: u32) -> Option<&Tile> {
         let idx = crate::idx(x, y, self.width);
         self.tiles.get(idx)
     }
@@ -52,6 +58,7 @@ impl Map {
 pub struct MapGenerator {
     pub map: Map,
     pub spawn: Vec2,
+    pub entities: Vec<(u32, UVec2)>,
 }
 
 impl MapGenerator {
@@ -62,8 +69,9 @@ impl MapGenerator {
         let mut gen = Self {
             map,
             spawn: Vec2::ZERO,
+            entities: Vec::new(),
         };
-        gen.map.tiles.iter_mut().for_each(|tile| *tile = 1);
+        gen.map.tiles.iter_mut().for_each(|tile| *tile = Tile::Wall);
         gen.build_rooms(&mut rng);
 
         gen
@@ -85,34 +93,35 @@ impl MapGenerator {
         }
 
         let start_room = possible_starts
-            .get(rng.gen_range(0..possible_starts.len())).unwrap();
+            .get(rng.gen_range(0..possible_starts.len()))
+            .unwrap();
         let pos = UVec2::splat(SIZE / 2);
 
         // Place selected room
         self.place_room(start_room, pos);
 
-        // Grab indicies of possible connectors
-        let connectors: Vec<usize> = start_room
-            .prefab
-            .chars()
-            .enumerate()
-            .filter(|(_, c)| *c == '+')
-            .map(|(idx, _)| idx)
-            .collect();
+        // // Grab indicies of possible connectors
+        // let connectors: Vec<usize> = start_room
+        //     .prefab
+        //     .chars()
+        //     .enumerate()
+        //     .filter(|(_, c)| *c == '+')
+        //     .map(|(idx, _)| idx)
+        //     .collect();
 
-        // Room has no connectors so stop generating
-        if connectors.is_empty() {
-            return;
-        }
+        // // Room has no connectors so stop generating
+        // if connectors.is_empty() {
+        //     return;
+        // }
 
-        let connector = connectors[rng.gen_range(0..connectors.len())];
+        // let connector = connectors[rng.gen_range(0..connectors.len())];
         // let connector_pos_a = uvec2(
         //     (connector as u32 % start_room.width) + pos.x,
         //     (connector as u32 / start_room.height) + pos.y
         // );
 
-        //TODO Carve tunnel from connector a to connector b using astar
-        let tunnel_len = rng.gen_range(MIN_TUNNEL_LEN..MAX_TUNNEL_LEN);
+        // //TODO Carve tunnel from connector a to connector b using astar
+        // let tunnel_len = rng.gen_range(MIN_TUNNEL_LEN..MAX_TUNNEL_LEN);
 
         //let new_room = ROOM_SMALL;
     }
@@ -139,13 +148,17 @@ impl MapGenerator {
         for y in 0..height - 1 {
             for x in 0..width / (height - 1) {
                 let tile = match chars[i] {
-                    '-' => 0,
+                    '-' => Tile::Empty,
                     '@' => {
                         self.spawn = vec2((pos.x + x) as f32 + 0.5, (pos.y + y) as f32 + 0.5);
-                        0
+                        Tile::Empty
                     }
-                    'D' => 0,
-                    _ => 1,
+                    'D' => Tile::Empty,
+                    'N' => {
+                        self.entities.push((0, uvec2(x, y)));
+                        Tile::Empty
+                    }
+                    _ => Tile::Wall,
                 };
 
                 self.map.tiles[idx(pos.x + x, pos.y + y, SIZE)] = tile;

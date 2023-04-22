@@ -21,7 +21,7 @@ pub fn detect_collision(
         let new_pos = trans.pos + velocity(movement.velocity(), movement.speed());
 
         if let Some(tile) = map.get_tile(new_pos.x as u32, new_pos.y as u32) {
-            if *tile == 0 {
+            if *tile == map::Tile::Empty {
                 continue;
             }
             movement.set_velocity(Vec2::ZERO);
@@ -37,5 +37,5 @@ pub fn collide(pos_a: Vec2, size_a: Vec2, pos_b: Vec2, size_b: Vec2) -> bool {
 }
 
 fn velocity(vel: Vec2, speed: f32) -> Vec2 {
-    vel * speed * (1. / FPS as f32) * PPU
+    vel * speed * TIMESTEP * PPU
 }

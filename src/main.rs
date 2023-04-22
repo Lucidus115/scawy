@@ -38,6 +38,7 @@ pub mod prelude {
 
     pub const FPS: u32 = 144;
     pub const PPU: f32 = 16.;
+    pub const TIMESTEP: f32 = 1. / FPS as f32;
 }
 
 #[derive(Default)]

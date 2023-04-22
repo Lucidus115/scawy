@@ -136,59 +136,6 @@ impl State for InGame {
         // draw map first
         self.world.resource_scope(|world, map: Mut<map::Map>| {
 
-            //TODO: DEBUG REMOVE ME
-            if ctx.controls.debug_view {
-                let player_pos;
-                let zoom = 1. / ctx.controls.debug_zoom;
-
-                {
-                    let trans = world.query_filtered::<&components::Transform, With<components::Player>>().single(world);
-                    player_pos = trans.pos * PPU - vec2(WIDTH as f32 / 2., HEIGHT as f32 / 2.);
-                }
-
-                for y in 0..map.height() {
-                    for x in 0..map.width() {
-                        let tile = map.get_tile(x, y).expect("tilemap should never be empty");
-
-                        let color = match *tile {
-                            1 => Color::from_rgb(255, 0, 0),
-                            2 => Color::from_rgb(0, 255, 0),
-                            3 => Color::from_rgb(0, 0, 255),
-                            _ => Color::from_rgb(0, 0, 0),
-                        };
-
-                        let pos = vec2((x as f32 * PPU) - player_pos.x, (y as f32 * PPU) - player_pos.y) * zoom;
-                        let size = PPU * zoom;
-
-                        if !crate::in_frustum(pos.x, pos.y, size, size) {
-                            continue;
-                        }
-
-                        crate::draw_rect(screen, &pos, &(pos + size), color)
-                    }
-                }
-
-                let mut query = world
-                    .query::<(&components::Transform, &components::Sprite)>();
-
-                for (trans, sprite) in query.iter(world) {
-                    let pos = vec2(
-                        (trans.pos.x * PPU - player_pos.x) * zoom,
-                        (trans.pos.y * PPU - player_pos.y) * zoom,
-                    );
-
-                    if !crate::in_frustum(pos.x, pos.y, PPU * zoom, PPU * zoom) {
-                        continue;
-                    }
-                    crate::draw_rect(
-                        screen,
-                        &pos,
-                        &(pos + (PPU * zoom)),
-                        sprite.color,
-                    )
-                }
-                return;
-            }
             // raycast
             // followed this tutorial lmao https://lodev.org/cgtutor/raycasting.html
 
@@ -293,7 +240,7 @@ impl State for InGame {
                         return;
                     }
                     if let Some(tile) = map.get_tile(tile_pos.x as u32, tile_pos.y as u32) {
-                        hit = *tile > 0;
+                        hit = *tile != map::Tile::Empty;
                     }
                 }
 
@@ -453,8 +400,9 @@ fn setup_map(world: &mut World) {
 }
 
 fn tile_to_texture(tile: map::Tile) -> &'static str {
+    use map::Tile;
     match tile {
-        1 => "ceil",
+        Tile::Door(_) => "door",
         _ => "wall",
     }
 }
