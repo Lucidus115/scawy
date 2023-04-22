@@ -1,6 +1,6 @@
-use std::{default, fs::File};
+use std::fs::File;
 
-use crate::{astar, idx, prelude::*};
+use crate::{idx, prelude::*};
 use bevy_ecs::system::Resource;
 use rand::{rngs::StdRng, Rng, SeedableRng};
 
@@ -79,9 +79,13 @@ impl MapGenerator {
             .iter()
             .filter(|room| room.prefab.contains('@'))
             .collect();
+
+        if possible_starts.is_empty() {
+            panic!("Uh oh. There are no rooms to start in");
+        }
+
         let start_room = possible_starts
-            .get(rng.gen_range(0..possible_starts.len()))
-            .expect("Uh oh. There are no rooms to start in");
+            .get(rng.gen_range(0..possible_starts.len())).unwrap();
         let pos = UVec2::splat(SIZE / 2);
 
         // Place selected room
