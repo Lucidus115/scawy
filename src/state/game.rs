@@ -9,6 +9,8 @@ use crate::{
 use assets_manager::BoxedError;
 use bevy_ecs::prelude::*;
 
+const DARKNESS: f32 = 2.;
+
 #[derive(Debug)]
 struct Camera {
     pos: Vec2,
@@ -165,11 +167,20 @@ impl State for InGame {
                     );
                     floor_pos += step;
 
+                    let idx = idx(tex_coords.x * 4, tex_coords.y * 4, floor.width());
+                    let dist = (row_dist * DARKNESS / 0.5).max(0.) as u8;
+
                     // floor
                     {
-                        let idx = idx(tex_coords.x * 4, tex_coords.y * 4, floor.width());
                         let mut rgba = floor.pixel(idx).slice();
-                        rgba.iter_mut().take(3).for_each(|val| *val /= 2);
+
+                        rgba.iter_mut().take(3).for_each(|val| {
+                            *val /= 2;
+
+                            if dist != 0 {
+                                *val /= dist;
+                            }
+                        });
 
                         let i = x * 4 + y * WIDTH * 4;
                         screen[i..i + 4].copy_from_slice(&rgba);
@@ -177,9 +188,14 @@ impl State for InGame {
 
                     // ceiling
                     {
-                        let idx = idx(tex_coords.x * 4, tex_coords.y * 4, ceil.width());
                         let mut rgba = ceil.pixel(idx).slice();
-                        rgba.iter_mut().take(3).for_each(|val| *val /= 2);
+                        rgba.iter_mut().take(3).for_each(|val| {
+                            *val /= 2;
+
+                            if dist != 0 {
+                                *val /= dist;
+                            }
+                        });
 
                         let i = x * 4 + (HEIGHT - y - 1) * WIDTH * 4;
                         screen[i..i + 4].copy_from_slice(&rgba);
@@ -288,9 +304,16 @@ impl State for InGame {
                     let idx = idx(tex_x * 4, tex_y * 4, tex.width());
                     let mut rgba = tex.pixel(idx).slice();
 
-                    if side {
-                        rgba.iter_mut().take(3).for_each(|val| *val /= 2);
-                    }
+                    rgba.iter_mut().take(3).for_each(|val| {
+                        if side {
+                            *val /= 2;
+                        }
+
+                        let dist = (HEIGHT as f32 * DARKNESS / wall_height as f32).max(0.) as u8;
+                        if dist != 0 {
+                            *val /= dist;
+                        }
+                    });
 
                     let i = x * 4 + y as usize * WIDTH * 4;
                     screen[i..i + 4].copy_from_slice(&rgba);
