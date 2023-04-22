@@ -2,8 +2,7 @@ use crate::{astar, idx, prelude::*};
 use bevy_ecs::system::Resource;
 use rand::{rngs::StdRng, Rng, SeedableRng};
 
-const NUM_ROOMS: u32 = 20;
-const SIZE: u32 = 50;
+const SIZE: u32 = 128;
 
 pub type Tile = u32;
 
@@ -55,90 +54,104 @@ pub struct MapGenerator {
 
 impl MapGenerator {
     pub fn new(seed: u64) -> Self {
-        let mut tile_map = vec![1; (SIZE * SIZE) as usize];
+        let map = Map::new(SIZE, SIZE);
+
         let mut rng = StdRng::seed_from_u64(seed);
-        let rooms = build_rooms(&mut rng);
-        for i in 0..rooms.len() {
-            let room = &rooms[i];
-            // Carve
-            for y in room.y..room.y + room.height {
-                for x in room.x..room.x + room.width {
-                    tile_map[idx(x, y, SIZE)] = 0;
-                }
-            }
-
-            // Connect
-            let neighbor =
-                (i as i32 + rng.gen_range(-1..2).min(rooms.len() as i32 - 1 - i as i32).max(0)) as usize;
-            let neighbor = &rooms[neighbor];
-            let path = astar::navigate(
-                vec2(room.x as f32, room.y as f32),
-                vec2(neighbor.x as f32, neighbor.y as f32),
-            );
-            path.iter()
-                .for_each(|point| tile_map[idx(point.x as u32, point.y as u32, SIZE)] = 0);
-        }
-
-        let mut map = Map::new(SIZE, SIZE);
-
-        for y in 0..SIZE {
-            for x in 0..SIZE {
-                let idx = idx(x, y, SIZE);
-                map.set_tile(x, y, tile_map[idx]);
-            }
-        }
-
-        let spawn = &rooms[0];
-
-        Self {
+        let mut gen = Self {
             map,
-            spawn: vec2(
-                spawn.x as f32 + (spawn.width as f32 / 2.),
-                spawn.y as f32 + (spawn.height as f32 / 2.),
-            ),
-        }
-    }
-}
-
-fn build_rooms(rng: &mut StdRng) -> Vec<Room> {
-    let mut rooms = Vec::with_capacity(NUM_ROOMS as usize);
-    let bounds = Room {
-        x: 0,
-        y: 0,
-        width: SIZE,
-        height: SIZE,
-    };
-    'outer: while rooms.len() < NUM_ROOMS as usize {
-        let room = Room {
-            x: rng.gen_range(1..SIZE - 10),
-            y: rng.gen_range(1..SIZE - 10),
-            width: rng.gen_range(2..10),
-            height: rng.gen_range(2..10),
+            spawn: Vec2::ZERO,
         };
-        for other in &rooms {
-            if room.intersect(other) || !room.intersect(&bounds) {
-                continue 'outer;
+        gen.map.tiles.iter_mut().for_each(|tile| *tile = 1);
+        gen.build_rooms(&mut rng);
+
+        gen
+    }
+
+    fn build_rooms(&mut self, rng: &mut StdRng) {
+        const MIN_TUNNEL_LEN: u32 = 3;
+        const MAX_TUNNEL_LEN: u32 = 7;
+
+        const START: Room = Room {
+            prefab: "
+            ##+###########
+            ##-###-------#
+            ##---D---@---#
+            ##-###-------#
+            ##+###########
+            ",
+            width: 14,
+            height: 5,
+        };
+
+        let (start_room, pos) = (START, UVec2::splat(SIZE / 2));
+
+        // Place selected room
+        self.place_room(start_room, pos);
+
+        // Grab indicies of possible connectors
+        let connectors: Vec<usize> = start_room
+            .prefab
+            .chars()
+            .enumerate()
+            .filter(|(_, c)| *c == '+')
+            .map(|(idx, _)| idx)
+            .collect();
+
+        // Room has no connectors so stop generating
+        if connectors.is_empty() {
+            return;
+        }
+
+        let connector = connectors[rng.gen_range(0..connectors.len())];
+        let connector_pos_a = uvec2(
+            (connector as u32 % start_room.width) + pos.x,
+            (connector as u32 / start_room.height) + pos.y
+        );
+
+        //TODO Carve tunnel from connector a to connector b using astar
+        let tunnel_len = rng.gen_range(MIN_TUNNEL_LEN..MAX_TUNNEL_LEN);
+
+        //let new_room = ROOM_SMALL;
+
+    }
+
+    fn place_room(&mut self, room: Room, pos: UVec2) {
+        let chars: Vec<char> = room.prefab.chars().filter(|c| !c.is_whitespace()).collect();
+
+        let mut i = 0;
+        for y in 0..room.height {
+            for x in 0..room.width {
+                let tile = match chars[i] {
+                    '-' => 0,
+                    '@' => {
+                        self.spawn = vec2((pos.x + x) as f32 + 0.5, (pos.y + y) as f32 + 0.5);
+                        0
+                    },
+                    'D' => 0,
+                    _ => 1,
+                };
+
+                self.map.tiles[idx(pos.x + x, pos.y + y, SIZE)] = tile;
+                i += 1;
             }
         }
-        rooms.push(room);
     }
-    rooms
 }
 
+#[derive(Clone, Copy, PartialEq)]
 struct Room {
-    x: u32,
-    y: u32,
+    prefab: &'static str,
     width: u32,
     height: u32,
 }
 
 impl Room {
-    fn intersect(&self, room: &Room) -> bool {
-        physics::collide(
-            vec2(self.x as f32, self.y as f32),
-            vec2(self.width as f32, self.height as f32),
-            vec2(room.x as f32, room.y as f32),
-            vec2(room.width as f32, room.height as f32),
-        )
-    }
+    // fn intersect(&self, room: &Room) -> bool {
+    //     physics::collide(
+    //         vec2(self.x as f32, self.y as f32),
+    //         vec2(self.width as f32, self.height as f32),
+    //         vec2(room.x as f32, room.y as f32),
+    //         vec2(room.width as f32, room.height as f32),
+    //     )
+    // }
 }

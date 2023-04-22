@@ -172,7 +172,7 @@ pub fn in_frustum(x: f32, y: f32, width: f32, height: f32) -> bool {
 }
 
 pub fn idx(x: u32, y: u32, width: u32) -> usize {
-    ((y * width) + x) as usize
+    (y * width + x) as usize
 }
 
 fn main() -> Result<(), Error> {
