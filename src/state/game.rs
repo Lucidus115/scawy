@@ -9,7 +9,7 @@ use crate::{
 use assets_manager::BoxedError;
 use bevy_ecs::prelude::*;
 
-const DARKNESS: f32 = 2.;
+const DARKNESS: f32 = 3.5;
 
 #[derive(Debug)]
 struct Camera {
@@ -324,13 +324,14 @@ impl State for InGame {
             }
 
             let mut query = world.query::<(&components::Transform, &components::Sprite)>();
-                query
-                    .iter(world)
-                    .max_by(|(trans_a, _), (trans_b, _)| {
-                        // Sort based on the sprite's distance to camera (far to close)
-                        let dist_a = trans_a.pos.distance_squared(self.cam.pos);
-                        dist_a.total_cmp(&trans_b.pos.distance_squared(self.cam.pos))
-                    })
+                let mut sprites: Vec<(&components::Transform, &components::Sprite)> = query.iter(world).collect();
+                sprites.sort_by(|(trans_a, _), (trans_b, _)| {
+                    // Sort based on the sprite's distance to camera (far to close)
+                    let dist_a = trans_a.pos.distance_squared(self.cam.pos);
+                    dist_a.total_cmp(&trans_b.pos.distance_squared(self.cam.pos))
+                });
+
+                sprites
                     .iter()
                     .for_each(|(trans, sprite)| {
                         let Ok(tex) = ctx.assets.load::<Texture>(&format!("textures.{}", sprite.texture)) else {
@@ -407,25 +408,19 @@ fn setup_map(world: &mut World) {
         components::Player,
     ));
 
-    // Spawn test sprite
-    world.spawn((
-        components::Transform {
-            pos: gen.spawn,
-            ..Default::default()
-        },
-        components::Sprite {
-            texture: String::from("owo"),
-            ..Default::default()
-        },
-    ));
+    for (ent, spawn) in gen.entities {
+        ent.spawn(world, spawn.as_vec2() + 0.5);
+    }
 
     world.insert_resource(gen.map);
 }
 
 fn tile_to_texture(tile: map::Tile) -> &'static str {
     use map::Tile;
+
     match tile {
-        Tile::Door(_) => "door",
+        Tile::Empty => "",
+        Tile::Exit => "exit",
         _ => "wall",
     }
 }

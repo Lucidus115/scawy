@@ -1,8 +1,57 @@
 use std::fs::File;
 
 use crate::{idx, prelude::*};
-use bevy_ecs::system::Resource;
+use bevy_ecs::{system::Resource, world::World};
 use rand::{rngs::StdRng, Rng, SeedableRng};
+
+pub enum Entity {
+    Note,
+    Generator,
+    Battery,
+}
+
+impl Entity {
+    pub fn spawn(&self, world: &mut World, pos: Vec2) -> bevy_ecs::entity::Entity {
+        match *self {
+            Self::Note => world
+                .spawn((
+                    components::Transform {
+                        pos,
+                        ..Default::default()
+                    },
+                    components::Sprite {
+                        texture: "note".into(),
+                        ..Default::default()
+                    },
+                ))
+                .id(),
+            Self::Generator => world
+                .spawn((
+                    components::Transform {
+                        pos,
+                        ..Default::default()
+                    },
+                    components::Sprite {
+                        texture: "generator".into(),
+                        ..Default::default()
+                    },
+                ))
+                .id(),
+            _ => world
+                .spawn((
+                    components::Transform {
+                        pos,
+                        ..Default::default()
+                    },
+                    components::Sprite {
+                        texture: "power".into(),
+                        ..Default::default()
+                    },
+                ))
+                .id(),
+        }
+    }
+}
 
 const SIZE: u32 = 128;
 
@@ -10,8 +59,7 @@ const SIZE: u32 = 128;
 pub enum Tile {
     Empty,
     Wall,
-    // Door state with a float that determines how open the door is
-    Door(f32),
+    Exit,
 }
 
 #[derive(Resource)]
@@ -58,7 +106,7 @@ impl Map {
 pub struct MapGenerator {
     pub map: Map,
     pub spawn: Vec2,
-    pub entities: Vec<(u32, UVec2)>,
+    pub entities: Vec<(Entity, UVec2)>,
 }
 
 impl MapGenerator {
@@ -78,8 +126,8 @@ impl MapGenerator {
     }
 
     fn build_rooms(&mut self, rng: &mut StdRng) {
-        const MIN_TUNNEL_LEN: u32 = 3;
-        const MAX_TUNNEL_LEN: u32 = 7;
+        // const MIN_TUNNEL_LEN: u32 = 3;
+        // const MAX_TUNNEL_LEN: u32 = 7;
 
         let room_defs = RoomDefs::load();
         let possible_starts: Vec<&Room> = room_defs
@@ -147,21 +195,30 @@ impl MapGenerator {
         let mut i = 0;
         for y in 0..height - 1 {
             for x in 0..width / (height - 1) {
+                let pos = uvec2(pos.x + x, pos.y + y);
                 let tile = match chars[i] {
                     '-' => Tile::Empty,
                     '@' => {
-                        self.spawn = vec2((pos.x + x) as f32 + 0.5, (pos.y + y) as f32 + 0.5);
+                        self.spawn = pos.as_vec2() + 0.5;
                         Tile::Empty
                     }
-                    'D' => Tile::Empty,
                     'N' => {
-                        self.entities.push((0, uvec2(x, y)));
+                        self.entities.push((Entity::Note, pos));
                         Tile::Empty
                     }
+                    'G' => {
+                        self.entities.push((Entity::Generator, pos));
+                        Tile::Empty
+                    }
+                    'B' => {
+                        self.entities.push((Entity::Battery, pos));
+                        Tile::Empty
+                    }
+                    'E' => Tile::Exit,
                     _ => Tile::Wall,
                 };
 
-                self.map.tiles[idx(pos.x + x, pos.y + y, SIZE)] = tile;
+                self.map.tiles[idx(pos.x, pos.y, SIZE)] = tile;
                 i += 1;
             }
         }
