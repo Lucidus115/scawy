@@ -3,7 +3,7 @@ use std::{
     collections::{BinaryHeap, HashMap},
 };
 
-use crate::math::*;
+use crate::{math::*, physics::collide};
 
 #[derive(PartialEq, Eq)]
 struct Node {
@@ -32,7 +32,7 @@ impl PartialOrd for Node {
     }
 }
 
-pub fn navigate(start: Vec2, target: Vec2) -> Vec<Vec2> {
+pub fn navigate(map: &crate::map::Map, start: Vec2, target: Vec2) -> Vec<Vec2> {
     let i_start = start.as_ivec2();
     let i_target = target.as_ivec2();
 
@@ -53,6 +53,14 @@ pub fn navigate(start: Vec2, target: Vec2) -> Vec<Vec2> {
         }
 
         for neighbor in neighbor_points(current.pos) {
+            if neighbor.x.is_negative()
+                || neighbor.y.is_negative()
+                || map.get_tile(neighbor.x as u32, neighbor.y as u32)
+                    != Some(&crate::map::Tile::Empty)
+            {
+                continue;
+            }
+
             let cost_to_neighbor = g_cost[&current.pos] + heuristic(&current.pos, &neighbor);
 
             // Initialize neighbor

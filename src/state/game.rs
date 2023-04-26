@@ -8,8 +8,25 @@ use crate::{
 
 use assets_manager::BoxedError;
 use bevy_ecs::prelude::*;
+use rand::Rng;
 
 const DARKNESS: f32 = 3.5;
+
+#[derive(Debug, Hash, PartialEq, Eq, Clone, SystemSet)]
+#[system_set(base)]
+pub enum CoreSet {
+    First,
+    Update,
+}
+
+impl CoreSet {
+    pub fn schedule() -> Schedule {
+        let mut schedule = Schedule::new();
+        schedule.set_default_base_set(CoreSet::Update);
+        schedule.configure_set(CoreSet::First.before(CoreSet::Update));
+        schedule
+    }
+}
 
 #[derive(Debug)]
 struct Camera {
@@ -39,11 +56,13 @@ impl InGame {
     pub fn new(ctx: &mut Context) -> Self {
         let mut world = World::default();
 
-        let mut schedule = Schedule::default();
+        let mut schedule = CoreSet::schedule();
         schedule.add_systems((
-            crate::physics::detect_collision.before(crate::physics::apply_movement),
+            //crate::physics::detect_collision.before(crate::physics::apply_movement),
             crate::physics::apply_movement,
         ));
+
+        crate::ai::add_to_world(&mut schedule, &mut world);
 
         setup_map(&mut world);
 
@@ -411,6 +430,27 @@ fn setup_map(world: &mut World) {
     for (ent, spawn) in gen.entities {
         ent.spawn(world, spawn.as_vec2() + 0.5);
     }
+
+    let mut monster_spawn = Vec2::NEG_ONE;
+    while monster_spawn == Vec2::NEG_ONE {
+        let x = rand::thread_rng().gen_range(0..gen.map.width());
+        let y = rand::thread_rng().gen_range(0..gen.map.height());
+
+        if gen.map.get_tile(x, y) == Some(&map::Tile::Empty) {
+            monster_spawn = vec2(x as f32, y as f32) + 0.5;
+        }
+    }
+
+    // Spawn monster
+    world.spawn((
+        components::Transform {
+            pos: monster_spawn,
+            ..Default::default()
+        },
+        components::Monster::Rest(FPS * 5), // 20 second rest period,
+        components::Movement::with_speed(0.125),
+        components::Navigator::default(),
+    ));
 
     world.insert_resource(gen.map);
 }

@@ -10,6 +10,7 @@ pub mod astar;
 pub mod components;
 pub mod physics;
 
+mod ai;
 mod graphics;
 mod map;
 mod math;

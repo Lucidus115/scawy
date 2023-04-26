@@ -50,6 +50,19 @@ impl Movement {
 #[derive(Component)]
 pub struct Player;
 
+#[derive(Component)]
+pub enum Monster {
+    Rest(u32), // Duration to rest for in game ticks
+    Wander,
+    Attack,
+}
+
+#[derive(Component, Default)]
+pub struct Navigator {
+    pub move_to: Option<Vec2>,
+    pub path: Vec<Vec2>,
+}
+
 #[derive(Component, Default)]
 pub struct Sprite {
     pub height: f32,
