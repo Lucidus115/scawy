@@ -1,7 +1,6 @@
 use crate::prelude::*;
 use assets_manager::AssetCache;
-use glam::{vec2, Vec2};
-use line_drawing::Bresenham;
+use kira::manager::{backend::cpal::CpalBackend, AudioManager, AudioManagerSettings};
 use state::AppState;
 use std::time::Instant;
 use winit_input_helper::WinitInputHelper;
@@ -14,6 +13,7 @@ mod ai;
 mod graphics;
 mod map;
 mod math;
+mod sound;
 mod state;
 
 use game_loop::{
@@ -31,6 +31,7 @@ const WIDTH: usize = 384;
 const HEIGHT: usize = 216;
 const TITLE: &str = "Scawy";
 
+const ASSETS_FOLDER: &str = "assets";
 pub mod prelude {
     pub use crate::components;
     pub use crate::math::*;
@@ -55,9 +56,10 @@ pub struct Controls {
 }
 
 pub struct Context {
-    assets: AssetCache,
-    controls: Controls,
-    input: WinitInputHelper,
+    pub assets: AssetCache,
+    pub controls: Controls,
+    pub input: WinitInputHelper,
+    pub snd: sound::SoundPlayer,
 }
 
 struct Game {
@@ -69,9 +71,11 @@ struct Game {
 
 impl Game {
     fn new(pixels: Pixels) -> Self {
-        let assets = AssetCache::new("assets").expect("Path is not a valid directory");
+        let assets = AssetCache::new(ASSETS_FOLDER).expect("Path is not a valid directory");
+        let snd = sound::SoundPlayer::default();
 
         let mut ctx = Context {
+            snd,
             assets,
             controls: Controls::default(),
             input: WinitInputHelper::new(),
@@ -132,45 +136,6 @@ impl Game {
         let active_state = self.state.peek();
         active_state.draw(&mut self.ctx, screen);
     }
-}
-
-pub fn draw_line(screen: &mut [u8], p1: &Vec2, p2: &Vec2, color: graphics::Color) {
-    let p1 = (p1.x as i64, p1.y as i64);
-    let p2 = (p2.x as i64, p2.y as i64);
-
-    for (x, y) in Bresenham::new(p1, p2) {
-        // Don't render if outside of rendering view
-        if !in_frustum(x as f32, y as f32, 1., 1.) {
-            continue;
-        }
-
-        let x = std::cmp::min(x as usize, WIDTH - 1);
-        let y = std::cmp::min(y as usize, HEIGHT - 1);
-
-        let i = x * 4 + y * WIDTH * 4;
-
-        screen[i..i + 4].copy_from_slice(&color.slice());
-    }
-}
-
-pub fn draw_rect(screen: &mut [u8], p1: &Vec2, p2: &Vec2, color: graphics::Color) {
-    let p2 = vec2(p2.x - 1., p2.y - 1.);
-    let p3 = vec2(p1.x, p2.y);
-    let p4 = vec2(p2.x, p1.y);
-
-    draw_line(screen, p1, &p3, color);
-    draw_line(screen, &p3, &p2, color);
-    draw_line(screen, &p2, &p4, color);
-    draw_line(screen, &p4, p1, color);
-}
-
-pub fn in_frustum(x: f32, y: f32, width: f32, height: f32) -> bool {
-    physics::collide(
-        vec2(x, y),
-        vec2(width, height),
-        Vec2::ZERO,
-        vec2(WIDTH as f32, HEIGHT as f32),
-    )
 }
 
 pub fn idx(x: u32, y: u32, width: u32) -> usize {

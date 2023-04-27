@@ -6,8 +6,9 @@ use crate::{
     Context, HEIGHT, WIDTH,
 };
 
-use assets_manager::BoxedError;
+use assets_manager::{asset::Wav, BoxedError};
 use bevy_ecs::prelude::*;
+use kira::{sound::static_sound::{StaticSoundData, StaticSoundSettings}, Volume};
 use rand::Rng;
 
 const DARKNESS: f32 = 3.5;
@@ -50,6 +51,7 @@ pub struct InGame {
     world: World,
     schedule: Schedule,
     z_buffer: Vec<f32>,
+    sound_timer: u32,
 }
 
 impl InGame {
@@ -58,7 +60,7 @@ impl InGame {
 
         let mut schedule = CoreSet::schedule();
         schedule.add_systems((
-            //crate::physics::detect_collision.before(crate::physics::apply_movement),
+            crate::physics::detect_collision.before(crate::physics::apply_movement),
             crate::physics::apply_movement,
         ));
 
@@ -71,6 +73,7 @@ impl InGame {
             ctx.assets.load::<Texture>("textures.floor")?;
             ctx.assets.load::<Texture>("textures.ceil")?;
 
+            ctx.assets.load::<Wav>("sounds.step")?;
             Ok(())
         };
 
@@ -83,6 +86,7 @@ impl InGame {
             schedule,
             cam: Camera::default(),
             z_buffer: vec![0.; WIDTH],
+            sound_timer: FPS * 2,
         }
     }
 }
@@ -141,10 +145,42 @@ impl State for InGame {
             .world
             .query_filtered::<&components::Transform, With<components::Player>>();
         let Ok(player_loc) = query.get_single(&self.world) else {
-                return;
-            };
+            return;
+        };
 
         self.cam.pos = player_loc.pos;
+
+        if self.sound_timer != 0 {
+            self.sound_timer -= 1;
+            return;
+        }
+
+        // Play monster audio
+        let mut query = self
+            .world
+            .query::<(&components::Transform, &components::Monster)>();
+
+        for (trans, monster) in query.iter(&self.world) {
+            if let components::Monster::Rest(_) = monster {
+                continue;
+            }
+
+            let dir = self.cam.pos - trans.pos;
+            let angle = self.cam.dir.angle_between(dir);
+
+            let mut pan = (angle.sin() / 2. + 0.5) as f64;
+            if pan.is_nan() {
+                pan = 0.5;
+            }
+
+            let dist = self.cam.pos.distance_squared(trans.pos) as f64;
+            let vol = ((1. / dist) * 2.5).min(1.);
+            let settings = StaticSoundSettings::new()
+                .panning(pan)
+                .volume(Volume::Amplitude(vol));
+            ctx.snd.play("sounds/step.wav", settings);
+        }
+        self.sound_timer = FPS * 2;
     }
 
     fn draw(&mut self, ctx: &mut Context, screen: &mut [u8]) {

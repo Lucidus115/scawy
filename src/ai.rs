@@ -15,7 +15,7 @@ pub fn add_to_world(schedule: &mut Schedule, world: &mut World) {
         navigate,
         rest_countdown,
         wander,
-        rest_after_wander
+        rest_after_wander,
     ));
 }
 
@@ -120,7 +120,7 @@ fn wander(
 
 fn rest_after_wander(
     mut event_reader: EventReader<ReachedTarget>,
-    mut query: Query<&mut components::Monster>
+    mut query: Query<&mut components::Monster>,
 ) {
     for event in event_reader.iter() {
         if let Ok(mut monster) = query.get_mut(event.nav_entity) {

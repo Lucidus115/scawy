@@ -3,7 +3,7 @@ use std::{
     collections::{BinaryHeap, HashMap},
 };
 
-use crate::{math::*, physics::collide};
+use crate::math::*;
 
 #[derive(PartialEq, Eq)]
 struct Node {
