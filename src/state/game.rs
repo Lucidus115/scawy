@@ -8,7 +8,7 @@ use crate::{
 
 use assets_manager::{asset::Wav, BoxedError};
 use bevy_ecs::prelude::*;
-use kira::{sound::static_sound::{StaticSoundData, StaticSoundSettings}, Volume};
+use kira::{sound::static_sound::{StaticSoundSettings}, Volume};
 use rand::Rng;
 
 const DARKNESS: f32 = 3.5;
@@ -442,7 +442,16 @@ impl State for InGame {
 
                                 let mut prev_color = Color::from(&screen[i..i + 4]);
                                 prev_color.blend(color);
-                                screen[i..i + 4].copy_from_slice(&prev_color.slice());
+
+                                let mut slice = prev_color.slice();
+                                let dist = (trans.pos.distance(self.cam.pos) * DARKNESS / 2.).max(0.) as u8;
+
+                                slice.iter_mut().take(3).for_each(|val| {
+                                    if dist != 0 {
+                                        *val /= dist;
+                                    }
+                                });
+                                screen[i..i + 4].copy_from_slice(&slice);
                             }
                         }
                     });
