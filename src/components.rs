@@ -47,6 +47,9 @@ impl Movement {
     }
 }
 
+#[derive(Component, Default)]
+pub struct Collider;
+
 #[derive(Component)]
 pub struct Player;
 

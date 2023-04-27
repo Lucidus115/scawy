@@ -12,7 +12,7 @@ pub fn apply_movement(
 
 pub fn detect_collision(
     map: Res<map::Map>,
-    mut move_query: Query<(&components::Transform, &mut components::Movement)>,
+    mut move_query: Query<(&components::Transform, &mut components::Movement), With<components::Collider>>,
 ) {
     // Reduction of collider size to make movement a bit easier
     // const BORDER: f32 = 0.1;

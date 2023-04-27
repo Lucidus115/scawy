@@ -461,6 +461,7 @@ fn setup_map(world: &mut World) {
         },
         components::Movement::with_speed(0.2),
         components::Player,
+        components::Collider
     ));
 
     for (ent, spawn) in gen.entities {
@@ -486,6 +487,10 @@ fn setup_map(world: &mut World) {
         components::Monster::Rest(FPS * 5), // 20 second rest period,
         components::Movement::with_speed(0.125),
         components::Navigator::default(),
+        // components::Sprite {
+        //     texture: "owo".into(),
+        //     ..Default::default()
+        // }
     ));
 
     world.insert_resource(gen.map);

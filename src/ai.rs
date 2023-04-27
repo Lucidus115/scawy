@@ -4,6 +4,11 @@ use crate::{astar, map, prelude::*, state::game::CoreSet};
 use bevy_ecs::prelude::*;
 use rand::Rng;
 
+struct ReachedTarget {
+    nav_entity: Entity,
+    target: Vec2,
+}
+
 pub fn add_to_world(schedule: &mut Schedule, world: &mut World) {
     // Add event
     if !world.contains_resource::<Events<ReachedTarget>>() {
@@ -19,11 +24,6 @@ pub fn add_to_world(schedule: &mut Schedule, world: &mut World) {
     ));
 }
 
-struct ReachedTarget {
-    nav_entity: Entity,
-    target: Vec2,
-}
-
 fn traverse_path(
     mut event_writer: EventWriter<ReachedTarget>,
     mut nav_query: Query<(
@@ -34,7 +34,7 @@ fn traverse_path(
     )>,
     mut current_node: Local<HashMap<Entity, usize>>,
 ) {
-    const MIN_DIST: f32 = 0.05;
+    const MIN_DIST: f32 = 0.2;
 
     for (ent, trans, mut movement, mut nav) in nav_query.iter_mut() {
         let Some(move_to) = nav.move_to else {
@@ -45,12 +45,13 @@ fn traverse_path(
 
         // Get closest node position
         if let Some(pos) = nav.path.get(*idx) {
-            let dir = *pos - trans.pos;
+            let pos = *pos + 0.5;
+            let dir = pos - trans.pos;
 
             movement.set_velocity(dir);
 
             if pos.distance_squared(trans.pos) < MIN_DIST {
-                if *pos == move_to {
+                if (pos - 0.5) == move_to {
                     nav.move_to = None;
                     *idx = 0;
 
@@ -113,7 +114,7 @@ fn wander(
         let y = rand::thread_rng().gen_range(0..map.height());
 
         if map.get_tile(x, y) == Some(&map::Tile::Empty) {
-            nav.move_to = Some(vec2(x as f32, y as f32) + 0.5);
+            nav.move_to = Some(vec2(x as f32, y as f32));
         }
     }
 }
