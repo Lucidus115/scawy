@@ -383,7 +383,7 @@ impl State for InGame {
                 sprites.sort_by(|(trans_a, _), (trans_b, _)| {
                     // Sort based on the sprite's distance to camera (far to close)
                     let dist_a = trans_a.pos.distance_squared(self.cam.pos);
-                    dist_a.total_cmp(&trans_b.pos.distance_squared(self.cam.pos))
+                    dist_a.total_cmp(&trans_b.pos.distance_squared(self.cam.pos)).reverse()
                 });
 
                 sprites
