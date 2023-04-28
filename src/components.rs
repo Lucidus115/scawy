@@ -91,3 +91,8 @@ pub struct Sprite {
     pub color: Color,
     pub texture: String,
 }
+
+#[derive(Component, Default)]
+pub struct Generator {
+    pub is_on: bool,
+}

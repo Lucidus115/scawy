@@ -1,10 +1,12 @@
+use std::fmt::format;
+
 use crate::{
     graphics::{Color, Texture},
     idx, map, player,
     prelude::*,
     spawner,
     state::State,
-    Context, HEIGHT, WIDTH,
+    Context, HEIGHT, WIDTH, sound,
 };
 
 use assets_manager::{asset::Wav, BoxedError};
@@ -56,6 +58,7 @@ impl InGame {
     pub fn new(ctx: &mut Context) -> Self {
         let mut world = World::default();
         world.insert_resource(Camera::default());
+        world.insert_resource(sound::SoundQueue::default());
 
         let mut schedule = CoreSet::schedule();
 
@@ -154,30 +157,18 @@ impl State for InGame {
             trans.dir = cam.dir;
         }
 
-        // Play monster audio
-        // let mut query = world.query::<(&components::Transform, &components::Monster)>();
-
-        // for (trans, monster) in query.iter(world) {
-        //     if let components::Monster::Rest(_) = monster {
-        //         continue;
-        //     }
-
-        //     let dir = cam.pos - trans.pos;
-        //     let angle = cam.dir.angle_between(dir);
-
-        //     let mut pan = (angle.sin() / 2. + 0.5) as f64;
-        //     if pan.is_nan() {
-        //         pan = 0.5;
-        //     }
-
-        //     let dist = cam.pos.distance_squared(trans.pos) as f64;
-        //     let vol = ((1. / dist) * 2.5).min(1.);
-        //     let settings = StaticSoundSettings::new()
-        //         .panning(pan)
-        //         .volume(Volume::Amplitude(vol));
-        //     ctx.snd.play("sounds/step.wav", settings);
-        // }
         self.schedule.run(&mut self.world);
+
+        // Play sounds
+        let Some(mut sounds) = self.world.get_resource_mut::<sound::SoundQueue>() else {
+            return;
+        };
+
+        sounds.0.retain(|snd| {
+            let path = format!("sounds/{}", snd.path);
+            ctx.snd.play(&path, snd.settings);
+            false
+        });
     }
 
     #[allow(clippy::type_complexity)]

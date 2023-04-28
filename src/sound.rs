@@ -1,4 +1,5 @@
 use crate::prelude::*;
+use bevy_ecs::system::Resource;
 use kira::{
     manager::{backend::cpal::CpalBackend, AudioManager, AudioManagerSettings},
     sound::static_sound::{StaticSoundData, StaticSoundSettings},
@@ -6,6 +7,24 @@ use kira::{
 };
 
 use crate::ASSETS_FOLDER;
+
+#[derive(Resource, Default)]
+pub struct SoundQueue(pub(crate) Vec<SoundInfo>);
+
+impl SoundQueue {
+    pub fn push(&mut self, snd_info: SoundInfo) {
+        self.0.push(snd_info);
+    }
+
+    pub fn pop(&mut self) -> Option<SoundInfo> {
+        self.0.pop()
+    }
+}
+
+pub struct SoundInfo {
+    pub path: String,
+    pub settings: StaticSoundSettings
+}
 
 pub struct SoundPlayer {
     manager: AudioManager,

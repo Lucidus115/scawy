@@ -35,6 +35,7 @@ impl Entity {
                         texture: "generator".into(),
                         ..Default::default()
                     },
+                    components::Generator::default(),
                 ))
                 .id(),
             _ => cmd

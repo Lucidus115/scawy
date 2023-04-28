@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::{astar, map, prelude::*, state::game::add_event};
+use crate::{astar, map, prelude::*, state::game::{add_event, Camera}, sound};
 use bevy_ecs::prelude::*;
 use rand::Rng;
 
@@ -14,9 +14,10 @@ pub fn add_to_world(schedule: &mut Schedule, world: &mut World) {
     schedule.add_systems((
         traverse_path,
         navigate,
-        rest_countdown,
-        wander,
-        rest_after_wander,
+        monster_rest_countdown,
+        monster_wander,
+        monster_rest,
+        play_monster_sound,
     ));
 }
 
@@ -78,7 +79,7 @@ fn navigate(
     }
 }
 
-fn rest_countdown(mut query: Query<&mut components::Monster>) {
+fn monster_rest_countdown(mut query: Query<&mut components::Monster>) {
     for mut monster in query.iter_mut() {
         let components::Monster::Rest(ticks) = *monster else {
             continue;
@@ -92,7 +93,46 @@ fn rest_countdown(mut query: Query<&mut components::Monster>) {
     }
 }
 
-fn wander(
+fn play_monster_sound(
+    mut sounds: ResMut<sound::SoundQueue>,
+    cam: Res<Camera>,
+    query: Query<(&components::Transform, &components::Monster)>,
+    mut snd_timer: Local<u32>,
+) {
+    if *snd_timer != 0 {
+        *snd_timer -= 1;
+        return;
+    }
+
+    for (trans, monster) in query.iter() {
+        if let components::Monster::Rest(_) = monster {
+            continue;
+        }
+
+        let dir = cam.pos - trans.pos;
+        let angle = cam.dir.angle_between(dir);
+
+        let mut pan = (angle.sin() / 2. + 0.5) as f64;
+        if pan.is_nan() {
+            pan = 0.5;
+        }
+
+        let dist = cam.pos.distance_squared(trans.pos) as f64;
+        let vol = ((1. / dist) * 2.5).min(1.);
+        let settings = kira::sound::static_sound::StaticSoundSettings::new()
+            .panning(pan)
+            .volume(kira::Volume::Amplitude(vol));
+        // Attempt to play wander sound
+        sounds.push(sound::SoundInfo {
+            path: "step.wav".into(),
+            settings
+        })
+    }
+    // Play sound every 1.25 seconds
+    *snd_timer = (FPS as f32 * 1.25) as u32;
+}
+
+fn monster_wander(
     mut query: Query<(&components::Monster, &mut components::Navigator)>,
     map: Res<map::Map>,
 ) {
@@ -115,7 +155,7 @@ fn wander(
     }
 }
 
-fn rest_after_wander(
+fn monster_rest(
     mut event_reader: EventReader<ReachedTarget>,
     mut query: Query<&mut components::Monster>,
 ) {
