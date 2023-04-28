@@ -1,3 +1,5 @@
+use std::fmt::format;
+
 use crate::{
     graphics::{Color, Texture},
     idx, map, player,
@@ -9,6 +11,11 @@ use crate::{
 
 use assets_manager::{asset::Wav, BoxedError};
 use bevy_ecs::{prelude::*, system::SystemState};
+use kira::{
+    manager::error::AddSubTrackError,
+    sound::static_sound::StaticSoundData,
+    track::{effect::reverb::ReverbBuilder, TrackBuilder, TrackHandle},
+};
 use rand::Rng;
 
 const DARKNESS: f32 = 3.5;
@@ -47,6 +54,7 @@ impl Default for Camera {
 }
 
 pub struct InGame {
+    audio_tracks: Vec<TrackHandle>,
     world: World,
     schedule: Schedule,
     z_buffer: Vec<f32>,
@@ -63,7 +71,7 @@ impl InGame {
         crate::physics::add_to_world(&mut schedule, &mut world);
         crate::ai::add_to_world(&mut schedule, &mut world);
         crate::player::add_to_world(&mut schedule, &mut world);
-        
+
         setup_map(&mut world);
 
         let load_assets = || -> Result<(), BoxedError> {
@@ -79,7 +87,27 @@ impl InGame {
             warn!("Uh oh! sorry guys. No preloaded assets for you.")
         }
 
+        let mut tracks = Vec::with_capacity(2);
+        let mut setup_audio_tracks = || -> Result<(), AddSubTrackError> {
+            let ambience = ctx.snd.add_sub_track(TrackBuilder::new())?;
+
+            let world_sounds = ctx.snd.add_sub_track({
+                let mut builder = TrackBuilder::new();
+                builder.add_effect(ReverbBuilder::new().mix(1.));
+                builder
+            })?;
+
+            tracks.push(ambience);
+            tracks.push(world_sounds);
+            Ok(())
+        };
+
+        if setup_audio_tracks().is_err() {
+            warn!("Bruh, audio tracks couldn't be set up properly. There goes the sound.");
+        }
+
         Self {
+            audio_tracks: tracks,
             world,
             schedule,
             z_buffer: vec![0.; WIDTH],
@@ -162,9 +190,18 @@ impl State for InGame {
             return;
         };
 
-        sounds.0.retain(|snd| {
-            let path = format!("sounds/{}", snd.path);
-            ctx.snd.play(&path, snd.settings);
+        sounds.0.get_mut(&sound::Track::World).unwrap().retain(|snd| {
+            let path = format!("{}/sounds/{}", crate::ASSETS_FOLDER, snd.path);
+            let path = path.as_str();
+            let Ok(snd) = StaticSoundData::from_file(path, snd.settings) else {
+                warn!("Failed to play sound from path: {path}. Path does not exist");
+                return false;
+            };
+
+            snd.settings.track(&self.audio_tracks[1]);
+            if ctx.snd.play(snd).is_err() {
+                warn!("An error occured attempting to play sound from path: {path}");
+            }
             false
         });
     }

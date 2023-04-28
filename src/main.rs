@@ -1,5 +1,6 @@
 use crate::prelude::*;
 use assets_manager::AssetCache;
+use kira::manager::{backend::cpal::CpalBackend, AudioManager, AudioManagerSettings};
 use state::AppState;
 use std::time::Instant;
 use winit_input_helper::WinitInputHelper;
@@ -61,7 +62,7 @@ pub struct Context {
     pub assets: AssetCache,
     pub controls: Controls,
     pub input: WinitInputHelper,
-    pub snd: sound::SoundPlayer,
+    pub snd: AudioManager,
 }
 
 struct Game {
@@ -74,7 +75,8 @@ struct Game {
 impl Game {
     fn new(pixels: Pixels) -> Self {
         let assets = AssetCache::new(ASSETS_FOLDER).expect("Path is not a valid directory");
-        let snd = sound::SoundPlayer::default();
+        let snd = AudioManager::<CpalBackend>::new(AudioManagerSettings::default())
+            .expect("failed to init Audio Manager");
 
         let mut ctx = Context {
             snd,

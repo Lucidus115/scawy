@@ -83,7 +83,7 @@ fn turn_on_gen(
             start_position: 1.5,
         });
 
-        sounds.push(snd);
+        sounds.push(sound::Track::World, snd);
         gen.is_on = true;
     }
 }

@@ -5,13 +5,8 @@ use crate::prelude::*;
 use components::*;
 
 pub fn spawn_ray(cmd: &mut Commands, trans: Transform, ray: Ray) -> Entity {
-    cmd.spawn((
-        trans,
-        Collider::default(),
-        Movement::with_speed(100.),
-        ray,
-    ))
-    .id()
+    cmd.spawn((trans, Collider::default(), Movement::with_speed(100.), ray))
+        .id()
 }
 
 pub fn spawn_player(cmd: &mut Commands, trans: Transform) -> Entity {
