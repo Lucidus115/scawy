@@ -1,4 +1,8 @@
-use crate::{prelude::*, state::game::{Camera, add_event}, spawner};
+use crate::{
+    prelude::*,
+    spawner,
+    state::game::{add_event, Camera},
+};
 use bevy_ecs::prelude::*;
 
 pub enum Action {
@@ -28,7 +32,7 @@ fn cam_follow_player(
 fn interact(
     mut cmd: Commands,
     mut event_reader: EventReader<SendAction>,
-    query: Query<(Entity, &components::Transform), With<components::Player>>
+    query: Query<(Entity, &components::Transform), With<components::Player>>,
 ) {
     for event in event_reader.iter() {
         let Ok((ent, trans)) = query.get(event.entity) else {
@@ -36,5 +40,5 @@ fn interact(
         };
 
         spawner::spawn_ray(&mut cmd, *trans, ent);
-    }    
+    }
 }

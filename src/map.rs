@@ -1,7 +1,7 @@
 use std::fs::File;
 
 use crate::{idx, prelude::*};
-use bevy_ecs::{system::{Resource, Commands}, world::World};
+use bevy_ecs::system::{Commands, Resource};
 use rand::{rngs::StdRng, Rng, SeedableRng};
 
 pub enum Entity {

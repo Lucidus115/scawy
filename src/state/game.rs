@@ -1,10 +1,10 @@
 use crate::{
     graphics::{Color, Texture},
-    idx, map,
+    idx, map, player,
     prelude::*,
     spawner,
     state::State,
-    Context, HEIGHT, WIDTH, player,
+    Context, HEIGHT, WIDTH,
 };
 
 use assets_manager::{asset::Wav, BoxedError};
@@ -58,11 +58,8 @@ impl InGame {
         world.insert_resource(Camera::default());
 
         let mut schedule = CoreSet::schedule();
-        schedule.add_systems((
-            crate::physics::detect_collision.before(crate::physics::apply_movement),
-            crate::physics::apply_movement,
-        ));
 
+        crate::physics::add_to_world(&mut schedule, &mut world);
         crate::ai::add_to_world(&mut schedule, &mut world);
         crate::player::add_to_world(&mut schedule, &mut world);
 
@@ -96,83 +93,90 @@ impl State for InGame {
         let mut system_state: SystemState<(
             EventWriter<player::SendAction>,
             ResMut<Camera>,
-            Query<(Entity, &mut components::Transform, &mut components::Movement), With<components::Player>>
+            Query<
+                (
+                    Entity,
+                    &mut components::Transform,
+                    &mut components::Movement,
+                ),
+                With<components::Player>,
+            >,
         )> = SystemState::new(&mut self.world);
 
         let (mut writer, mut cam, mut player_query) = system_state.get_mut(&mut self.world);
-            // Input
-            for (ent, mut trans, mut movement) in player_query.iter_mut() {
-                let mut vel = Vec2::ZERO;
+        // Input
+        for (ent, mut trans, mut movement) in player_query.iter_mut() {
+            let mut vel = Vec2::ZERO;
 
-                if ctx.controls.y < 0. {
-                    vel += vec2(cam.dir.x, cam.dir.y);
-                }
-                if ctx.controls.y > 0. {
-                    vel += vec2(-cam.dir.x, -cam.dir.y);
-                }
-                if ctx.controls.x > 0. {
-                    vel += vec2(cam.dir.y, -cam.dir.x);
-                }
-                if ctx.controls.x < 0. {
-                    vel += vec2(-cam.dir.y, cam.dir.x);
-                }
-
-                movement.set_velocity(vel);
-
-                if ctx.controls.right != 0. {
-                    let rot = -SENSITIVITY;
-                    let prev_dir_x = cam.dir.x;
-                    let prev_plane_x = cam.plane.x;
-
-                    cam.dir.x = cam.dir.x * rot.cos() - cam.dir.y * rot.sin();
-                    cam.dir.y = prev_dir_x * rot.sin() + cam.dir.y * rot.cos();
-                    cam.plane.x = cam.plane.x * rot.cos() - cam.plane.y * rot.sin();
-                    cam.plane.y = prev_plane_x * rot.sin() + cam.plane.y * rot.cos();
-                }
-                if ctx.controls.left != 0. {
-                    let rot = SENSITIVITY;
-                    let prev_dir_x = cam.dir.x;
-                    let prev_plane_x = cam.plane.x;
-
-                    cam.dir.x = cam.dir.x * rot.cos() - cam.dir.y * rot.sin();
-                    cam.dir.y = prev_dir_x * rot.sin() + cam.dir.y * rot.cos();
-                    cam.plane.x = cam.plane.x * rot.cos() - cam.plane.y * rot.sin();
-                    cam.plane.y = prev_plane_x * rot.sin() + cam.plane.y * rot.cos();
-                }
-
-                if ctx.controls.interact {
-                    writer.send(player::SendAction {
-                        entity: ent,
-                        action: player::Action::Interact
-                    });
-                }
-
-                trans.dir = cam.dir;
+            if ctx.controls.y < 0. {
+                vel += vec2(cam.dir.x, cam.dir.y);
+            }
+            if ctx.controls.y > 0. {
+                vel += vec2(-cam.dir.x, -cam.dir.y);
+            }
+            if ctx.controls.x > 0. {
+                vel += vec2(cam.dir.y, -cam.dir.x);
+            }
+            if ctx.controls.x < 0. {
+                vel += vec2(-cam.dir.y, cam.dir.x);
             }
 
-            // Play monster audio
-            // let mut query = world.query::<(&components::Transform, &components::Monster)>();
+            movement.set_velocity(vel);
 
-            // for (trans, monster) in query.iter(world) {
-            //     if let components::Monster::Rest(_) = monster {
-            //         continue;
-            //     }
+            if ctx.controls.right != 0. {
+                let rot = -SENSITIVITY;
+                let prev_dir_x = cam.dir.x;
+                let prev_plane_x = cam.plane.x;
 
-            //     let dir = cam.pos - trans.pos;
-            //     let angle = cam.dir.angle_between(dir);
+                cam.dir.x = cam.dir.x * rot.cos() - cam.dir.y * rot.sin();
+                cam.dir.y = prev_dir_x * rot.sin() + cam.dir.y * rot.cos();
+                cam.plane.x = cam.plane.x * rot.cos() - cam.plane.y * rot.sin();
+                cam.plane.y = prev_plane_x * rot.sin() + cam.plane.y * rot.cos();
+            }
+            if ctx.controls.left != 0. {
+                let rot = SENSITIVITY;
+                let prev_dir_x = cam.dir.x;
+                let prev_plane_x = cam.plane.x;
 
-            //     let mut pan = (angle.sin() / 2. + 0.5) as f64;
-            //     if pan.is_nan() {
-            //         pan = 0.5;
-            //     }
+                cam.dir.x = cam.dir.x * rot.cos() - cam.dir.y * rot.sin();
+                cam.dir.y = prev_dir_x * rot.sin() + cam.dir.y * rot.cos();
+                cam.plane.x = cam.plane.x * rot.cos() - cam.plane.y * rot.sin();
+                cam.plane.y = prev_plane_x * rot.sin() + cam.plane.y * rot.cos();
+            }
 
-            //     let dist = cam.pos.distance_squared(trans.pos) as f64;
-            //     let vol = ((1. / dist) * 2.5).min(1.);
-            //     let settings = StaticSoundSettings::new()
-            //         .panning(pan)
-            //         .volume(Volume::Amplitude(vol));
-            //     ctx.snd.play("sounds/step.wav", settings);
-            // }
+            if ctx.controls.interact {
+                writer.send(player::SendAction {
+                    entity: ent,
+                    action: player::Action::Interact,
+                });
+            }
+
+            trans.dir = cam.dir;
+        }
+
+        // Play monster audio
+        // let mut query = world.query::<(&components::Transform, &components::Monster)>();
+
+        // for (trans, monster) in query.iter(world) {
+        //     if let components::Monster::Rest(_) = monster {
+        //         continue;
+        //     }
+
+        //     let dir = cam.pos - trans.pos;
+        //     let angle = cam.dir.angle_between(dir);
+
+        //     let mut pan = (angle.sin() / 2. + 0.5) as f64;
+        //     if pan.is_nan() {
+        //         pan = 0.5;
+        //     }
+
+        //     let dist = cam.pos.distance_squared(trans.pos) as f64;
+        //     let vol = ((1. / dist) * 2.5).min(1.);
+        //     let settings = StaticSoundSettings::new()
+        //         .panning(pan)
+        //         .volume(Volume::Amplitude(vol));
+        //     ctx.snd.play("sounds/step.wav", settings);
+        // }
         self.schedule.run(&mut self.world);
     }
 
@@ -505,6 +509,8 @@ fn setup_map(world: &mut World) {
         },
     );
 
+    // Since we used commands, we need to apply them to the world
+    system_state.apply(world);
     world.insert_resource(gen.map);
 }
 
