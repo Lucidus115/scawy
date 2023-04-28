@@ -12,7 +12,9 @@ mod ai;
 mod graphics;
 mod map;
 mod math;
+mod player;
 mod sound;
+mod spawner;
 mod state;
 
 use game_loop::{

@@ -55,7 +55,7 @@ impl Entity {
 
 const SIZE: u32 = 128;
 
-#[derive(Clone, Copy, PartialEq)]
+#[derive(Clone, Copy, PartialEq, Debug)]
 pub enum Tile {
     Empty,
     Wall,

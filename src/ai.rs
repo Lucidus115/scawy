@@ -11,9 +11,7 @@ struct ReachedTarget {
 
 pub fn add_to_world(schedule: &mut Schedule, world: &mut World) {
     // Add event
-    if !world.contains_resource::<Events<ReachedTarget>>() {
-        world.init_resource::<Events<ReachedTarget>>();
-    }
+    world.init_resource::<Events<ReachedTarget>>();
     schedule.add_system(Events::<ReachedTarget>::update_system.in_base_set(CoreSet::First));
     schedule.add_systems((
         traverse_path,

@@ -4,6 +4,7 @@ use bevy_ecs::prelude::*;
 #[derive(Component)]
 pub struct Transform {
     pub pos: Vec2,
+    pub dir: Vec2,
     pub scale: Vec2,
 }
 
@@ -11,6 +12,7 @@ impl Default for Transform {
     fn default() -> Self {
         Self {
             pos: Vec2::ZERO,
+            dir: Vec2::NEG_X,
             scale: Vec2::splat(1.),
         }
     }
@@ -47,11 +49,24 @@ impl Movement {
     }
 }
 
-#[derive(Component, Default)]
-pub struct Collider;
+#[derive(Component)]
+pub struct Collider {
+    pub size: Vec2,
+}
+
+impl Default for Collider {
+    fn default() -> Self {
+        Self {
+            size: Vec2::splat(1.),
+        }
+    }
+}
 
 #[derive(Component)]
 pub struct Player;
+
+#[derive(Component)]
+pub struct Ray;
 
 #[derive(Component)]
 pub enum Monster {
