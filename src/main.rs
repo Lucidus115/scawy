@@ -31,6 +31,7 @@ use pixels::{
 const WIDTH: usize = 384;
 const HEIGHT: usize = 216;
 const TITLE: &str = "Scawy";
+const DEBUG: bool = cfg!(debug_assertions);
 
 const ASSETS_FOLDER: &str = "assets";
 pub mod prelude {
@@ -197,6 +198,10 @@ fn main() -> Result<(), Error> {
             if let Err(err) = g.game.pixels.render() {
                 error!("bruh, rendering failed: {err}");
                 g.exit()
+            }
+
+            if !DEBUG {
+                return;
             }
 
             if start.elapsed().as_secs() >= 1 {
