@@ -1,6 +1,11 @@
 use std::collections::HashMap;
 
-use crate::{astar, map, prelude::*, state::game::{add_event, Camera}, sound};
+use crate::{
+    astar, map,
+    prelude::*,
+    sound,
+    state::game::{add_event, Camera},
+};
 use bevy_ecs::prelude::*;
 use rand::Rng;
 
@@ -109,24 +114,8 @@ fn play_monster_sound(
             continue;
         }
 
-        let dir = cam.pos - trans.pos;
-        let angle = cam.dir.angle_between(dir);
-
-        let mut pan = (angle.sin() / 2. + 0.5) as f64;
-        if pan.is_nan() {
-            pan = 0.5;
-        }
-
-        let dist = cam.pos.distance_squared(trans.pos) as f64;
-        let vol = ((1. / dist) * 2.5).min(1.);
-        let settings = kira::sound::static_sound::StaticSoundSettings::new()
-            .panning(pan)
-            .volume(kira::Volume::Amplitude(vol));
         // Attempt to play wander sound
-        sounds.push(sound::SoundInfo {
-            path: "step.wav".into(),
-            settings
-        })
+        sounds.push(sound::SoundInfo::at_position("step.wav", &cam, trans.pos))
     }
     // Play sound every 1.25 seconds
     *snd_timer = (FPS as f32 * 1.25) as u32;

@@ -56,8 +56,8 @@ fn detect_collision(
             movement.set_velocity(Vec2::ZERO);
         }
 
-        for (ent_b, trans_other, col_other) in collider_query.iter() {
-            if collide(trans_a.pos, col_a.size, trans_other.pos, col_other.size) {
+        for (ent_b, trans_b, col_b) in collider_query.iter() {
+            if collide(trans_a.pos, col_a.size, trans_b.pos, col_b.size) {
                 let event = CollisionHit {
                     entity: ent_a,
                     hit_entity: ent_b,

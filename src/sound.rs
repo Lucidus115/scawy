@@ -1,4 +1,4 @@
-use crate::prelude::*;
+use crate::{prelude::*, state::game::Camera};
 use bevy_ecs::system::Resource;
 use kira::{
     manager::{backend::cpal::CpalBackend, AudioManager, AudioManagerSettings},
@@ -23,7 +23,31 @@ impl SoundQueue {
 
 pub struct SoundInfo {
     pub path: String,
-    pub settings: StaticSoundSettings
+    pub settings: StaticSoundSettings,
+}
+
+impl SoundInfo {
+    /// Returns sound information with settings to give the effect of 3D audio
+    pub fn at_position(path: &str, cam: &Camera, pos: Vec2) -> Self {
+        let dir = cam.pos - pos;
+        let angle = cam.dir.angle_between(dir);
+
+        let mut pan = (angle.sin() / 2. + 0.5) as f64;
+        if pan.is_nan() {
+            pan = 0.5;
+        }
+
+        let dist = cam.pos.distance_squared(pos) as f64;
+        let vol = ((1. / dist) * 2.5).min(1.);
+        let settings = kira::sound::static_sound::StaticSoundSettings::new()
+            .panning(pan)
+            .volume(kira::Volume::Amplitude(vol));
+
+        Self {
+            path: path.into(),
+            settings,
+        }
+    }
 }
 
 pub struct SoundPlayer {

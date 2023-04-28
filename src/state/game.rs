@@ -1,12 +1,10 @@
-use std::fmt::format;
-
 use crate::{
     graphics::{Color, Texture},
     idx, map, player,
     prelude::*,
-    spawner,
+    sound, spawner,
     state::State,
-    Context, HEIGHT, WIDTH, sound,
+    Context, HEIGHT, WIDTH,
 };
 
 use assets_manager::{asset::Wav, BoxedError};
@@ -65,7 +63,7 @@ impl InGame {
         crate::physics::add_to_world(&mut schedule, &mut world);
         crate::ai::add_to_world(&mut schedule, &mut world);
         crate::player::add_to_world(&mut schedule, &mut world);
-
+        
         setup_map(&mut world);
 
         let load_assets = || -> Result<(), BoxedError> {

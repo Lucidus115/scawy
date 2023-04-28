@@ -35,6 +35,7 @@ impl Entity {
                         texture: "generator".into(),
                         ..Default::default()
                     },
+                    components::Collider::default(),
                     components::Generator::default(),
                 ))
                 .id(),
