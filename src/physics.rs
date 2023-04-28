@@ -18,7 +18,7 @@ pub fn add_to_world(schedule: &mut Schedule, world: &mut World) {
         apply_movement,
         detect_collision.before(apply_movement),
         step_ray,
-        despawn_ray_on_hit
+        despawn_ray_on_hit,
     ));
 }
 
@@ -71,7 +71,7 @@ fn detect_collision(
 fn despawn_ray_on_hit(
     mut cmd: Commands,
     mut event_reader: EventReader<CollisionHit>,
-    query: Query<&components::Ray>
+    query: Query<&components::Ray>,
 ) {
     for event in event_reader.iter() {
         let (ent, ray) = if let Ok(ray) = query.get(event.entity) {
@@ -89,9 +89,20 @@ fn despawn_ray_on_hit(
     }
 }
 
-fn step_ray(mut query: Query<(&mut components::Movement, &components::Transform), With<components::Ray>>) {
-    for (mut movement, trans) in query.iter_mut() {
-        movement.set_velocity(trans.dir);
+fn step_ray(
+    mut cmd: Commands,
+    mut query: Query<(Entity, &mut components::Movement, &components::Ray)>,
+    trans_query: Query<&components::Transform>,
+) {
+    for (ent, mut movement, ray) in query.iter_mut() {
+        let Ok([trans_a, trans_b]) = trans_query.get_many([ent, ray.parent]) else {
+            continue;
+        };
+        movement.set_velocity(trans_a.dir);
+
+        if trans_a.pos.distance_squared(trans_b.pos) > ray.max_dist {
+            cmd.entity(ent).despawn();
+        }
     }
 }
 

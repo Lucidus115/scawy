@@ -39,6 +39,13 @@ fn interact(
             continue;
         };
 
-        spawner::spawn_ray(&mut cmd, *trans, ent);
+        spawner::spawn_ray(
+            &mut cmd,
+            *trans,
+            components::Ray {
+                parent: ent,
+                max_dist: 0.75,
+            },
+        );
     }
 }

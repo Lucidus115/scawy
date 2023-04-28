@@ -4,16 +4,12 @@ use crate::prelude::*;
 
 use components::*;
 
-pub fn spawn_ray(cmd: &mut Commands, trans: Transform, parent: Entity) -> Entity {
+pub fn spawn_ray(cmd: &mut Commands, trans: Transform, ray: Ray) -> Entity {
     cmd.spawn((
         trans,
         Collider::default(),
-        Movement::with_speed(0.05),
-        Ray { parent },
-        Sprite {
-            texture: "owo".into(),
-            ..Default::default()
-        },
+        Movement::with_speed(100.),
+        ray,
     ))
     .id()
 }

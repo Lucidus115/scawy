@@ -69,6 +69,7 @@ pub struct Player;
 pub struct Ray {
     // The entity which this ray came from
     pub parent: Entity,
+    pub max_dist: f32,
 }
 
 #[derive(Component)]
