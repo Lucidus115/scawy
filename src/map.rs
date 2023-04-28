@@ -1,7 +1,7 @@
 use std::fs::File;
 
 use crate::{idx, prelude::*};
-use bevy_ecs::{system::Resource, world::World};
+use bevy_ecs::{system::{Resource, Commands}, world::World};
 use rand::{rngs::StdRng, Rng, SeedableRng};
 
 pub enum Entity {
@@ -11,9 +11,9 @@ pub enum Entity {
 }
 
 impl Entity {
-    pub fn spawn(&self, world: &mut World, pos: Vec2) -> bevy_ecs::entity::Entity {
+    pub fn spawn(&self, cmd: &mut Commands, pos: Vec2) -> bevy_ecs::entity::Entity {
         match *self {
-            Self::Note => world
+            Self::Note => cmd
                 .spawn((
                     components::Transform {
                         pos,
@@ -25,7 +25,7 @@ impl Entity {
                     },
                 ))
                 .id(),
-            Self::Generator => world
+            Self::Generator => cmd
                 .spawn((
                     components::Transform {
                         pos,
@@ -37,7 +37,7 @@ impl Entity {
                     },
                 ))
                 .id(),
-            _ => world
+            _ => cmd
                 .spawn((
                     components::Transform {
                         pos,

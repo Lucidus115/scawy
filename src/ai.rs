@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::{astar, map, prelude::*, state::game::CoreSet};
+use crate::{astar, map, prelude::*, state::game::add_event};
 use bevy_ecs::prelude::*;
 use rand::Rng;
 
@@ -10,9 +10,7 @@ struct ReachedTarget {
 }
 
 pub fn add_to_world(schedule: &mut Schedule, world: &mut World) {
-    // Add event
-    world.init_resource::<Events<ReachedTarget>>();
-    schedule.add_system(Events::<ReachedTarget>::update_system.in_base_set(CoreSet::First));
+    add_event::<ReachedTarget>(world, schedule);
     schedule.add_systems((
         traverse_path,
         navigate,

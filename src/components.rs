@@ -1,7 +1,7 @@
 use crate::{graphics::Color, prelude::*};
 use bevy_ecs::prelude::*;
 
-#[derive(Component)]
+#[derive(Component, Clone, Copy)]
 pub struct Transform {
     pub pos: Vec2,
     pub dir: Vec2,
@@ -66,7 +66,10 @@ impl Default for Collider {
 pub struct Player;
 
 #[derive(Component)]
-pub struct Ray;
+pub struct Ray {
+    // The entity which this ray came from
+    pub parent: Entity,
+}
 
 #[derive(Component)]
 pub enum Monster {

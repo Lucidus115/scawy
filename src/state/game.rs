@@ -4,12 +4,11 @@ use crate::{
     prelude::*,
     spawner,
     state::State,
-    Context, HEIGHT, WIDTH,
+    Context, HEIGHT, WIDTH, player,
 };
 
 use assets_manager::{asset::Wav, BoxedError};
 use bevy_ecs::{prelude::*, system::SystemState};
-use kira::{sound::static_sound::StaticSoundSettings, Volume};
 use rand::Rng;
 
 const DARKNESS: f32 = 3.5;
@@ -93,11 +92,16 @@ impl InGame {
 const SENSITIVITY: f32 = 1. / FPS as f32 * 3.;
 impl State for InGame {
     fn update(&mut self, ctx: &mut Context) {
-        self.world.resource_scope(|world, mut cam: Mut<Camera>| {
+        #[allow(clippy::type_complexity)]
+        let mut system_state: SystemState<(
+            EventWriter<player::SendAction>,
+            ResMut<Camera>,
+            Query<(Entity, &mut components::Transform, &mut components::Movement), With<components::Player>>
+        )> = SystemState::new(&mut self.world);
+
+        let (mut writer, mut cam, mut player_query) = system_state.get_mut(&mut self.world);
             // Input
-            let mut query =
-                world.query_filtered::<&mut components::Movement, With<components::Player>>();
-            for mut movement in query.iter_mut(world) {
+            for (ent, mut trans, mut movement) in player_query.iter_mut() {
                 let mut vel = Vec2::ZERO;
 
                 if ctx.controls.y < 0. {
@@ -135,32 +139,40 @@ impl State for InGame {
                     cam.plane.x = cam.plane.x * rot.cos() - cam.plane.y * rot.sin();
                     cam.plane.y = prev_plane_x * rot.sin() + cam.plane.y * rot.cos();
                 }
+
+                if ctx.controls.interact {
+                    writer.send(player::SendAction {
+                        entity: ent,
+                        action: player::Action::Interact
+                    });
+                }
+
+                trans.dir = cam.dir;
             }
 
             // Play monster audio
-            let mut query = world.query::<(&components::Transform, &components::Monster)>();
+            // let mut query = world.query::<(&components::Transform, &components::Monster)>();
 
-            for (trans, monster) in query.iter(world) {
-                if let components::Monster::Rest(_) = monster {
-                    continue;
-                }
+            // for (trans, monster) in query.iter(world) {
+            //     if let components::Monster::Rest(_) = monster {
+            //         continue;
+            //     }
 
-                let dir = cam.pos - trans.pos;
-                let angle = cam.dir.angle_between(dir);
+            //     let dir = cam.pos - trans.pos;
+            //     let angle = cam.dir.angle_between(dir);
 
-                let mut pan = (angle.sin() / 2. + 0.5) as f64;
-                if pan.is_nan() {
-                    pan = 0.5;
-                }
+            //     let mut pan = (angle.sin() / 2. + 0.5) as f64;
+            //     if pan.is_nan() {
+            //         pan = 0.5;
+            //     }
 
-                let dist = cam.pos.distance_squared(trans.pos) as f64;
-                let vol = ((1. / dist) * 2.5).min(1.);
-                let settings = StaticSoundSettings::new()
-                    .panning(pan)
-                    .volume(Volume::Amplitude(vol));
-                ctx.snd.play("sounds/step.wav", settings);
-            }
-        });
+            //     let dist = cam.pos.distance_squared(trans.pos) as f64;
+            //     let vol = ((1. / dist) * 2.5).min(1.);
+            //     let settings = StaticSoundSettings::new()
+            //         .panning(pan)
+            //         .volume(Volume::Amplitude(vol));
+            //     ctx.snd.play("sounds/step.wav", settings);
+            // }
         self.schedule.run(&mut self.world);
     }
 
@@ -449,11 +461,22 @@ impl State for InGame {
     }
 }
 
+pub fn add_event<T>(world: &mut World, schedule: &mut Schedule)
+where
+    T: bevy_ecs::event::Event,
+{
+    world.init_resource::<Events<T>>();
+    schedule.add_system(Events::<T>::update_system.in_base_set(CoreSet::First));
+}
+
 fn setup_map(world: &mut World) {
     let gen = map::MapGenerator::new(0);
 
+    let mut system_state: SystemState<Commands> = SystemState::new(world);
+    let mut cmd = system_state.get(world);
+
     spawner::spawn_player(
-        world,
+        &mut cmd,
         components::Transform {
             pos: gen.spawn,
             ..Default::default()
@@ -461,7 +484,7 @@ fn setup_map(world: &mut World) {
     );
 
     for (ent, spawn) in gen.entities {
-        ent.spawn(world, spawn.as_vec2() + 0.5);
+        ent.spawn(&mut cmd, spawn.as_vec2() + 0.5);
     }
 
     let mut monster_spawn = Vec2::NEG_ONE;
@@ -475,7 +498,7 @@ fn setup_map(world: &mut World) {
     }
 
     spawner::spawn_monster(
-        world,
+        &mut cmd,
         components::Transform {
             pos: monster_spawn,
             ..Default::default()

@@ -1,17 +1,17 @@
-use bevy_ecs::{prelude::Entity, world::World};
+use bevy_ecs::{prelude::Entity, system::Commands};
 
 use crate::prelude::*;
 
 use components::*;
 
-pub fn spawn_ray(world: &mut World, trans: Transform) -> Entity {
-    world
-        .spawn((trans, Collider::default(), Movement::with_speed(100.), Ray))
+pub fn spawn_ray(cmd: &mut Commands, trans: Transform, parent: Entity) -> Entity {
+    cmd
+        .spawn((trans, Collider::default(), Movement::with_speed(100.), Ray { parent }))
         .id()
 }
 
-pub fn spawn_player(world: &mut World, trans: Transform) -> Entity {
-    world
+pub fn spawn_player(cmd: &mut Commands, trans: Transform) -> Entity {
+    cmd
         .spawn((
             trans,
             Movement::with_speed(0.2),
@@ -21,8 +21,8 @@ pub fn spawn_player(world: &mut World, trans: Transform) -> Entity {
         .id()
 }
 
-pub fn spawn_monster(world: &mut World, trans: Transform) -> Entity {
-    world
+pub fn spawn_monster(cmd: &mut Commands, trans: Transform) -> Entity {
+    cmd
         .spawn((
             trans,
             Monster::Rest(FPS * 20), // 20 second rest period

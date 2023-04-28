@@ -1,11 +1,19 @@
+use crate::{prelude::*, state::game::{Camera, add_event}, spawner};
 use bevy_ecs::prelude::*;
-use crate::{prelude::*, state::game::Camera};
+
+pub enum Action {
+    Interact,
+    Attack,
+}
+
+pub struct SendAction {
+    pub entity: Entity,
+    pub action: Action,
+}
 
 pub fn add_to_world(schedule: &mut Schedule, world: &mut World) {
-    schedule.add_systems((
-        cam_follow_player,
-        set_player_direction
-    ));
+    add_event::<SendAction>(world, schedule);
+    schedule.add_systems((cam_follow_player, interact));
 }
 
 fn cam_follow_player(
@@ -17,11 +25,16 @@ fn cam_follow_player(
     }
 }
 
-fn set_player_direction(
-    cam: Res<Camera>,
-    mut query: Query<&mut components::Transform, With<components::Player>>
+fn interact(
+    mut cmd: Commands,
+    mut event_reader: EventReader<SendAction>,
+    query: Query<(Entity, &components::Transform), With<components::Player>>
 ) {
-    for mut trans in query.iter_mut() {
-        trans.dir = cam.dir;
-    }
+    for event in event_reader.iter() {
+        let Ok((ent, trans)) = query.get(event.entity) else {
+            continue;
+        };
+
+        spawner::spawn_ray(&mut cmd, *trans, ent);
+    }    
 }
