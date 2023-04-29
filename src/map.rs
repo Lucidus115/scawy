@@ -49,6 +49,10 @@ impl Entity {
                         texture: "power".into(),
                         ..Default::default()
                     },
+                    components::Collider::default(),
+                    components::Battery {
+                        amount: 1
+                    }
                 ))
                 .id(),
         }

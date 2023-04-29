@@ -64,7 +64,7 @@ impl Default for Collider {
 
 #[derive(Component, Default)]
 pub struct Player {
-    pub batteries: u8,
+    pub batteries: u32,
 }
 
 #[derive(Component)]
@@ -97,4 +97,9 @@ pub struct Sprite {
 #[derive(Component, Default)]
 pub struct Generator {
     pub is_on: bool,
+}
+
+#[derive(Component, Default)]
+pub struct Battery {
+    pub amount: u32
 }

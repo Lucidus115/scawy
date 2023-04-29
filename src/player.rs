@@ -23,7 +23,7 @@ pub struct FlashLight {
 pub fn add_to_world(schedule: &mut Schedule, world: &mut World) {
     add_event::<SendAction>(world, schedule);
     add_event::<FlashLight>(world, schedule);
-    schedule.add_systems((cam_follow_player, interact, turn_on_gen, use_light));
+    schedule.add_systems((cam_follow_player, interact, turn_on_gen, use_light, pickup_battery));
 }
 
 fn cam_follow_player(
@@ -129,5 +129,33 @@ fn turn_on_gen(
 
         sounds.push(sound::Track::World, snd);
         gen.is_on = true;
+    }
+}
+
+fn pickup_battery(
+    mut cmd: Commands,
+    mut event_reader: EventReader<physics::CollisionHit>,
+    mut player_query: Query<&mut components::Player>,
+    bat_query: Query<&components::Battery>,
+    ray_query: Query<&components::Ray>,
+) {
+    for event in event_reader.iter() {
+        let (par, hit) = if let Ok(ray) = ray_query.get(event.entity) {
+            (ray.parent, event.hit_entity)
+        } else if let Ok(ray) = ray_query.get(event.hit_entity) {
+            (ray.parent, event.entity)
+        } else {
+            continue;
+        };
+
+        let Ok(mut player) = player_query.get_mut(par) else {
+            continue;
+        };
+        let Ok(bat) = bat_query.get(hit) else {
+            continue;
+        };
+      
+        player.batteries += bat.amount;
+        cmd.entity(hit).despawn();
     }
 }
