@@ -1,5 +1,3 @@
-use std::fmt::format;
-
 use crate::{
     graphics::{Color, Texture},
     idx, map, player,
@@ -190,20 +188,28 @@ impl State for InGame {
             return;
         };
 
-        sounds.0.get_mut(&sound::Track::World).unwrap().retain(|snd| {
-            let path = format!("{}/sounds/{}", crate::ASSETS_FOLDER, snd.path);
-            let path = path.as_str();
-            let Ok(snd) = StaticSoundData::from_file(path, snd.settings) else {
-                warn!("Failed to play sound from path: {path}. Path does not exist");
-                return false;
-            };
+        let mut play_sounds = |track| {
+            sounds.0.get_mut(&track).unwrap().retain(|snd| {
 
-            snd.settings.track(&self.audio_tracks[1]);
-            if ctx.snd.play(snd).is_err() {
-                warn!("An error occured attempting to play sound from path: {path}");
-            }
-            false
-        });
+                let path = format!("{}/sounds/{}", crate::ASSETS_FOLDER, snd.path);
+                let path = path.as_str();
+
+                let Ok(snd) = StaticSoundData::from_file(path, snd.settings) else {
+                    warn!("Failed to play sound from path: {path}. Path does not exist");
+                    return false;
+                };
+
+                snd.settings.track(&self.audio_tracks[track as usize]);
+
+                if ctx.snd.play(snd).is_err() {
+                    warn!("An error occured attempting to play sound from path: {path}");
+                }
+                
+                false
+            });
+        };
+
+        play_sounds(sound::Track::World);
     }
 
     #[allow(clippy::type_complexity)]

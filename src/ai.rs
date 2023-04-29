@@ -115,7 +115,10 @@ fn play_monster_sound(
         }
 
         // Attempt to play wander sound
-        sounds.push(sound::Track::World, sound::SoundInfo::at_position("step.wav", &cam, trans.pos))
+        sounds.push(
+            sound::Track::World,
+            sound::SoundInfo::at_position("step.wav", &cam, trans.pos),
+        )
     }
     // Play sound every 1.25 seconds
     *snd_timer = (FPS as f32 * 1.25) as u32;
