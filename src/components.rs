@@ -63,6 +63,9 @@ impl Default for Collider {
 }
 
 #[derive(Component, Default)]
+pub struct Exit;
+
+#[derive(Component, Default)]
 pub struct Player {
     pub batteries: u32,
 }

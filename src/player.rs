@@ -23,9 +23,16 @@ pub struct FlashLight {
     pub duration: u32,
 }
 
+pub enum ExitCondition {
+    Win,
+    Lose,
+}
+
 pub fn add_to_world(schedule: &mut Schedule, world: &mut World) {
     add_event::<SendAction>(world, schedule);
     add_event::<FlashLight>(world, schedule);
+    add_event::<ExitCondition>(world, schedule);
+
     schedule.add_systems((
         cam_follow_player,
         interact,
@@ -33,6 +40,7 @@ pub fn add_to_world(schedule: &mut Schedule, world: &mut World) {
         use_light,
         pickup_battery,
         play_gen_sound,
+        exit_door,
     ));
 }
 
@@ -171,12 +179,10 @@ fn turn_on_gen(
         }
 
         let snd = sound::SoundInfo::at_position("generator_on.wav", &cam, trans.pos);
-
-        snd.settings
-            .loop_behavior(kira::LoopBehavior { start_position: 0. });
-
         sounds.push(sound::Track::Sfx, snd);
+
         gen.is_on = true;
+        data.generators_required -= 1;
 
         if data.generators_required == 0 {
             light_writer.send(FlashLight {
@@ -191,7 +197,6 @@ fn turn_on_gen(
 
             sounds.push(sound::Track::Sfx, snd);
         }
-        data.generators_required -= 1;
     }
 }
 
@@ -220,5 +225,26 @@ fn pickup_battery(
 
         player.batteries += bat.amount;
         cmd.entity(hit).despawn();
+    }
+}
+
+fn exit_door(
+    mut event_writer: EventWriter<ExitCondition>,
+    data: Res<GameData>,
+    query: Query<&components::Transform, With<components::Player>>,
+    exit_query: Query<&components::Transform, With<components::Exit>>,
+) {
+    for trans_a in query.iter() {
+        if data.generators_required != 0 {
+            continue;
+        }
+
+        // power is on check if next to an exit
+        for trans_b in exit_query.iter() {
+            if trans_a.pos.distance_squared(trans_b.pos) > 1. {
+                continue;
+            }
+            event_writer.send(ExitCondition::Win)
+        }
     }
 }

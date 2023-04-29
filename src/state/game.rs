@@ -2,7 +2,8 @@ use crate::{
     graphics::{Color, Texture},
     idx,
     input::KeyCode,
-    map, player,
+    map,
+    player::{self, ExitCondition},
     prelude::*,
     sound, spawner,
     state::State,
@@ -14,7 +15,7 @@ use bevy_ecs::{prelude::*, system::SystemState};
 use kira::{
     manager::error::AddSubTrackError,
     sound::static_sound::StaticSoundData,
-    track::{effect::reverb::ReverbBuilder, TrackBuilder, TrackHandle, TrackRoutes},
+    track::{TrackBuilder, TrackHandle},
 };
 use rand::Rng;
 
@@ -170,6 +171,7 @@ impl State for InGame {
         #[allow(clippy::type_complexity)]
         let mut system_state: SystemState<(
             EventWriter<player::SendAction>,
+            EventReader<player::ExitCondition>,
             ResMut<Camera>,
             Query<
                 (
@@ -181,7 +183,26 @@ impl State for InGame {
             >,
         )> = SystemState::new(&mut self.world);
 
-        let (mut writer, mut cam, mut player_query) = system_state.get_mut(&mut self.world);
+        let (mut writer, mut exit_reader, mut cam, mut player_query) =
+            system_state.get_mut(&mut self.world);
+
+        let mut exit = false;
+
+        for event in exit_reader.iter() {
+            let msg = if let ExitCondition::Win = event {
+                "yay you win"
+            } else {
+                "you are ded. not big surprise"
+            };
+
+            println!("{msg}");
+            exit = true;
+        }
+
+        if exit {
+            
+            return;
+        }
 
         // Input
         for (ent, mut trans, mut movement) in player_query.iter_mut() {

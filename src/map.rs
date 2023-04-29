@@ -8,6 +8,7 @@ pub enum Entity {
     Note,
     Generator,
     Battery,
+    Exit,
 }
 
 impl Entity {
@@ -37,6 +38,15 @@ impl Entity {
                     },
                     components::Collider::default(),
                     components::Generator::default(),
+                ))
+                .id(),
+            Self::Exit => cmd
+                .spawn((
+                    components::Transform {
+                        pos,
+                        ..Default::default()
+                    },
+                    components::Exit::default(),
                 ))
                 .id(),
             _ => cmd
@@ -218,7 +228,10 @@ impl MapGenerator {
                         self.entities.push((Entity::Battery, pos));
                         Tile::Empty
                     }
-                    'E' => Tile::Exit,
+                    'E' => {
+                        self.entities.push((Entity::Exit, pos));
+                        Tile::Exit
+                    }
                     _ => Tile::Wall,
                 };
 
