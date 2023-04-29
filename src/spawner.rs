@@ -21,10 +21,6 @@ pub fn spawn_monster(cmd: &mut Commands, trans: Transform) -> Entity {
         Monster::Rest(FPS * 20), // 20 second rest period
         Movement::with_speed(0.125),
         Navigator::default(),
-        Sprite {
-            texture: "owo".into(),
-            ..Default::default()
-        },
     ))
     .id()
 }

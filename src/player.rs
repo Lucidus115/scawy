@@ -85,6 +85,7 @@ fn cam_follow_player(
 }
 
 fn use_light(
+    data: Res<GameData>,
     map: Res<Map>,
     mut sounds: ResMut<sound::SoundQueue>,
     mut event_writer: EventWriter<FlashLight>,
@@ -93,6 +94,9 @@ fn use_light(
     mut monster_query: Query<(&components::Transform, &mut components::Monster)>,
 ) {
     for event in event_reader.iter() {
+        if data.generators_required == 0 {
+            continue;
+        }
         let Action::Attack = event.action else {
             continue;
         };
