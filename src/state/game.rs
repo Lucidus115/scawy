@@ -26,6 +26,7 @@ const DARKNESS: f32 = 3.5;
 pub enum CoreSet {
     First,
     Update,
+    Last,
 }
 
 impl CoreSet {
@@ -33,6 +34,7 @@ impl CoreSet {
         let mut schedule = Schedule::new();
         schedule.set_default_base_set(CoreSet::Update);
         schedule.configure_set(CoreSet::First.before(CoreSet::Update));
+        schedule.configure_set(CoreSet::Last.after(CoreSet::Update));
         schedule
     }
 }
@@ -195,12 +197,11 @@ impl State for InGame {
                 "you are ded. not big surprise"
             };
 
-            println!("{msg}");
+            panic!("{msg}");
             exit = true;
         }
 
         if exit {
-            
             return;
         }
 

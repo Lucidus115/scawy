@@ -1,12 +1,7 @@
 use crate::prelude::*;
 use assets_manager::AssetCache;
 use input::{KeyCode, KeyboardInput};
-use kira::{
-    manager::{backend::cpal::CpalBackend, AudioManager, AudioManagerSettings},
-    sound::static_sound::{StaticSoundData, StaticSoundSettings},
-    track::{effect::reverb::ReverbBuilder, TrackBuilder, TrackRoutes},
-    LoopBehavior,
-};
+use kira::manager::{backend::cpal::CpalBackend, AudioManager, AudioManagerSettings};
 use state::AppState;
 use std::time::Instant;
 

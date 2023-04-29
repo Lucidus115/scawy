@@ -24,6 +24,7 @@ impl Entity {
                         texture: "note".into(),
                         ..Default::default()
                     },
+                    components::Interactable,
                 ))
                 .id(),
             Self::Generator => cmd
@@ -36,8 +37,11 @@ impl Entity {
                         texture: "generator".into(),
                         ..Default::default()
                     },
-                    components::Collider::default(),
+                    components::Collider {
+                        size: Vec2::splat(2.5),
+                    },
                     components::Generator::default(),
+                    components::Interactable,
                 ))
                 .id(),
             Self::Exit => cmd
@@ -59,8 +63,11 @@ impl Entity {
                         texture: "power".into(),
                         ..Default::default()
                     },
-                    components::Collider::default(),
+                    components::Collider {
+                        size: Vec2::splat(2.5),
+                    },
                     components::Battery { amount: 1 },
+                    components::Interactable,
                 ))
                 .id(),
         }

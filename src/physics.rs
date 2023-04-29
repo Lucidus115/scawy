@@ -14,12 +14,7 @@ impl CollisionHit {
 
 pub fn add_to_world(schedule: &mut Schedule, world: &mut World) {
     add_event::<CollisionHit>(world, schedule);
-    schedule.add_systems((
-        apply_movement,
-        detect_collision.before(apply_movement),
-        step_ray,
-        despawn_ray_on_hit,
-    ));
+    schedule.add_systems((apply_movement, detect_collision.before(apply_movement)));
 }
 
 fn apply_movement(mut move_query: Query<(&mut components::Transform, &mut components::Movement)>) {
@@ -64,44 +59,6 @@ fn detect_collision(
                 };
                 event_writer.send(event);
             }
-        }
-    }
-}
-
-fn despawn_ray_on_hit(
-    mut cmd: Commands,
-    mut event_reader: EventReader<CollisionHit>,
-    query: Query<&components::Ray>,
-) {
-    for event in event_reader.iter() {
-        let (ent, ray) = if let Ok(ray) = query.get(event.entity) {
-            (event.entity, ray)
-        } else if let Ok(ray) = query.get(event.hit_entity) {
-            (event.hit_entity, ray)
-        } else {
-            continue;
-        };
-
-        if event.contains(ray.parent) {
-            continue;
-        }
-        cmd.entity(ent).despawn();
-    }
-}
-
-fn step_ray(
-    mut cmd: Commands,
-    mut query: Query<(Entity, &mut components::Movement, &components::Ray)>,
-    trans_query: Query<&components::Transform>,
-) {
-    for (ent, mut movement, ray) in query.iter_mut() {
-        let Ok([trans_a, trans_b]) = trans_query.get_many([ent, ray.parent]) else {
-            continue;
-        };
-        movement.set_velocity(trans_a.dir);
-
-        if trans_a.pos.distance_squared(trans_b.pos) > ray.max_dist {
-            cmd.entity(ent).despawn();
         }
     }
 }

@@ -63,6 +63,9 @@ impl Default for Collider {
 }
 
 #[derive(Component, Default)]
+pub struct Interactable;
+
+#[derive(Component, Default)]
 pub struct Exit;
 
 #[derive(Component, Default)]
@@ -71,17 +74,16 @@ pub struct Player {
 }
 
 #[derive(Component)]
-pub struct Ray {
-    // The entity which this ray came from
-    pub parent: Entity,
-    pub max_dist: f32,
-}
-
-#[derive(Component)]
 pub enum Monster {
     Rest(u32), // Duration to rest for in game ticks
     Wander,
-    Attack,
+    Attack(Entity), // Target
+    Flee(Vec2),
+}
+
+#[derive(Component, Default)]
+pub struct MonsterTarget {
+    pub is_dead: bool,
 }
 
 #[derive(Component, Default)]

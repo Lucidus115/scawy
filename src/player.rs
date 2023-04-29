@@ -1,12 +1,17 @@
 use std::collections::HashMap;
 
 use crate::{
+    map::Map,
     prelude::*,
-    sound, spawner,
-    state::game::{add_event, Camera, GameData},
+    sound,
+    state::game::{add_event, Camera, CoreSet, GameData},
     ticks,
 };
 use bevy_ecs::prelude::*;
+use rand::Rng;
+
+const LIGHT_RANGE: f32 = 16.;
+const INTERACT_RANGE: f32 = 1.5;
 
 pub enum Action {
     Interact,
@@ -28,22 +33,48 @@ pub enum ExitCondition {
     Lose,
 }
 
+struct Interact {
+    entity: Entity,
+}
+
 pub fn add_to_world(schedule: &mut Schedule, world: &mut World) {
     add_event::<SendAction>(world, schedule);
     add_event::<FlashLight>(world, schedule);
     add_event::<ExitCondition>(world, schedule);
+    add_event::<Interact>(world, schedule);
 
     schedule.add_systems((
         cam_follow_player,
-        interact,
         turn_on_gen,
         use_light,
         pickup_battery,
         play_gen_sound,
         exit_door,
+        exit_on_dead,
+        interact,
+        despawn_interactable.in_base_set(CoreSet::Last),
     ));
 }
 
+fn interact(
+    mut event_reader: EventReader<SendAction>,
+    mut event_writer: EventWriter<Interact>,
+    player_query: Query<&components::Transform, With<components::Player>>,
+    interactable_query: Query<(Entity, &components::Transform), With<components::Interactable>>,
+) {
+    for event in event_reader.iter() {
+        let Action::Interact = event.action else {
+            continue;
+        };
+        for player_trans in player_query.iter() {
+            for (int, int_trans) in interactable_query.iter() {
+                if player_trans.pos.distance_squared(int_trans.pos) < INTERACT_RANGE {
+                    event_writer.send(Interact { entity: int })
+                }
+            }
+        }
+    }
+}
 fn cam_follow_player(
     mut cam: ResMut<Camera>,
     query: Query<&components::Transform, With<components::Player>>,
@@ -53,41 +84,19 @@ fn cam_follow_player(
     }
 }
 
-fn interact(
-    mut cmd: Commands,
-    mut event_reader: EventReader<SendAction>,
-    query: Query<(Entity, &components::Transform), With<components::Player>>,
-) {
-    for event in event_reader.iter() {
-        let Action::Interact = event.action else {
-            continue;
-        };
-        let Ok((ent, trans)) = query.get(event.entity) else {
-            continue;
-        };
-
-        spawner::spawn_ray(
-            &mut cmd,
-            *trans,
-            components::Ray {
-                parent: ent,
-                max_dist: 1.,
-            },
-        );
-    }
-}
-
 fn use_light(
+    map: Res<Map>,
     mut sounds: ResMut<sound::SoundQueue>,
     mut event_writer: EventWriter<FlashLight>,
     mut event_reader: EventReader<SendAction>,
-    mut query: Query<&mut components::Player>,
+    mut query: Query<(&components::Transform, &mut components::Player)>,
+    mut monster_query: Query<(&components::Transform, &mut components::Monster)>,
 ) {
     for event in event_reader.iter() {
         let Action::Attack = event.action else {
             continue;
         };
-        let Ok(mut player) = query.get_mut(event.entity) else {
+        let Ok((player_trans, mut player)) = query.get_mut(event.entity) else {
             continue;
         };
 
@@ -102,6 +111,26 @@ fn use_light(
             return;
         }
         player.batteries -= 1;
+
+        for (monster_trans, mut monster) in monster_query.iter_mut() {
+            if player_trans.pos.distance_squared(monster_trans.pos) > LIGHT_RANGE {
+                continue;
+            }
+
+            // Find a random point on map to flee to
+            let mut pos = monster_trans.pos;
+
+            while pos.distance_squared(player_trans.pos) < 100. {
+                let idx = rand::thread_rng().gen_range(0..map.width() * map.height());
+                let x = idx % map.width();
+                let y = idx / map.height();
+
+                if map.get_tile(x, y) == Some(&crate::map::Tile::Empty) {
+                    pos = vec2(x as f32, y as f32);
+                }
+            }
+            *monster = components::Monster::Flee(pos);
+        }
 
         event_writer.send(FlashLight {
             intesity: 7.,
@@ -148,30 +177,16 @@ fn play_gen_sound(
     }
 }
 
-#[allow(clippy::too_many_arguments)]
 fn turn_on_gen(
+    mut int_reader: EventReader<Interact>,
     mut light_writer: EventWriter<FlashLight>,
-    mut collision_reader: EventReader<physics::CollisionHit>,
     mut data: ResMut<GameData>,
     mut sounds: ResMut<sound::SoundQueue>,
     cam: Res<Camera>,
     mut gen_query: Query<(&components::Transform, &mut components::Generator)>,
-    ray_query: Query<&components::Ray>,
-    player_query: Query<&components::Player>,
 ) {
-    for event in collision_reader.iter() {
-        let (par, hit) = if let Ok(ray) = ray_query.get(event.entity) {
-            (ray.parent, event.hit_entity)
-        } else if let Ok(ray) = ray_query.get(event.hit_entity) {
-            (ray.parent, event.entity)
-        } else {
-            continue;
-        };
-
-        if player_query.get(par).is_err() {
-            continue;
-        }
-        let Ok((trans, mut gen)) = gen_query.get_mut(hit) else {
+    for event in int_reader.iter() {
+        let Ok((trans, mut gen)) = gen_query.get_mut(event.entity) else {
             continue;
         };
         if gen.is_on {
@@ -201,30 +216,30 @@ fn turn_on_gen(
 }
 
 fn pickup_battery(
-    mut cmd: Commands,
-    mut event_reader: EventReader<physics::CollisionHit>,
+    mut int_reader: EventReader<Interact>,
     mut player_query: Query<&mut components::Player>,
     bat_query: Query<&components::Battery>,
-    ray_query: Query<&components::Ray>,
 ) {
-    for event in event_reader.iter() {
-        let (par, hit) = if let Ok(ray) = ray_query.get(event.entity) {
-            (ray.parent, event.hit_entity)
-        } else if let Ok(ray) = ray_query.get(event.hit_entity) {
-            (ray.parent, event.entity)
-        } else {
+    for event in int_reader.iter() {
+        for mut player in player_query.iter_mut() {
+            let Ok(bat) = bat_query.get(event.entity) else {
             continue;
         };
 
-        let Ok(mut player) = player_query.get_mut(par) else {
-            continue;
-        };
-        let Ok(bat) = bat_query.get(hit) else {
-            continue;
-        };
+            player.batteries += bat.amount;
+        }
+    }
+}
 
-        player.batteries += bat.amount;
-        cmd.entity(hit).despawn();
+fn despawn_interactable(
+    mut cmd: Commands,
+    mut int_reader: EventReader<Interact>,
+    int_query: Query<&components::Interactable, Without<components::Generator>>,
+) {
+    for event in int_reader.iter() {
+        if int_query.get(event.entity).is_ok() {
+            cmd.entity(event.entity).despawn();
+        }
     }
 }
 
@@ -245,6 +260,17 @@ fn exit_door(
                 continue;
             }
             event_writer.send(ExitCondition::Win)
+        }
+    }
+}
+
+fn exit_on_dead(
+    mut event_writer: EventWriter<ExitCondition>,
+    query: Query<&components::MonsterTarget, With<components::Player>>,
+) {
+    for target in query.iter() {
+        if target.is_dead {
+            event_writer.send(ExitCondition::Lose);
         }
     }
 }
