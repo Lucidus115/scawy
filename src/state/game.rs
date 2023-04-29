@@ -51,11 +51,23 @@ impl Default for Camera {
     }
 }
 
+#[derive(Default)]
+pub struct Controls {
+    pub x: f32,
+    pub y: f32,
+    pub left: f32,
+    pub right: f32,
+    pub interact: bool,
+    pub attack: bool,
+    pub pause: bool,
+}
+
 pub struct InGame {
     audio_tracks: Vec<TrackHandle>,
     world: World,
     schedule: Schedule,
     z_buffer: Vec<f32>,
+    controls: Controls,
 }
 
 impl InGame {
@@ -109,6 +121,7 @@ impl InGame {
             world,
             schedule,
             z_buffer: vec![0.; WIDTH],
+            controls: Default::default(),
         }
     }
 }
@@ -116,6 +129,31 @@ impl InGame {
 const SENSITIVITY: f32 = 1. / FPS as f32 * 3.;
 impl State for InGame {
     fn update(&mut self, ctx: &mut Context) {
+
+        use game_loop::winit::event::VirtualKeyCode;
+
+        self.controls = {
+            let x = ctx.input.key_held(VirtualKeyCode::D) as i8
+                - ctx.input.key_held(VirtualKeyCode::A) as i8;
+            let y = ctx.input.key_held(VirtualKeyCode::S) as i8
+                - ctx.input.key_held(VirtualKeyCode::W) as i8;
+            let (left, right) = (
+                ctx.input.key_held(VirtualKeyCode::Left) as i8 as f32,
+                ctx.input.key_held(VirtualKeyCode::Right) as i8 as f32,
+            );
+            // let (left, right) = self.input.mouse_diff();
+
+            Controls {
+                x: x as f32,
+                y: y as f32,
+                left,
+                right,
+                interact: ctx.input.key_pressed(VirtualKeyCode::E),
+                attack: ctx.input.key_pressed(VirtualKeyCode::Space),
+                ..Default::default()
+            }
+        };
+
         #[allow(clippy::type_complexity)]
         let mut system_state: SystemState<(
             EventWriter<player::SendAction>,
@@ -131,26 +169,27 @@ impl State for InGame {
         )> = SystemState::new(&mut self.world);
 
         let (mut writer, mut cam, mut player_query) = system_state.get_mut(&mut self.world);
+        
         // Input
         for (ent, mut trans, mut movement) in player_query.iter_mut() {
             let mut vel = Vec2::ZERO;
 
-            if ctx.controls.y < 0. {
+            if self.controls.y < 0. {
                 vel += vec2(cam.dir.x, cam.dir.y);
             }
-            if ctx.controls.y > 0. {
+            if self.controls.y > 0. {
                 vel += vec2(-cam.dir.x, -cam.dir.y);
             }
-            if ctx.controls.x > 0. {
+            if self.controls.x > 0. {
                 vel += vec2(cam.dir.y, -cam.dir.x);
             }
-            if ctx.controls.x < 0. {
+            if self.controls.x < 0. {
                 vel += vec2(-cam.dir.y, cam.dir.x);
             }
 
             movement.set_velocity(vel);
 
-            if ctx.controls.right != 0. {
+            if self.controls.right != 0. {
                 let rot = -SENSITIVITY;
                 let prev_dir_x = cam.dir.x;
                 let prev_plane_x = cam.plane.x;
@@ -160,7 +199,7 @@ impl State for InGame {
                 cam.plane.x = cam.plane.x * rot.cos() - cam.plane.y * rot.sin();
                 cam.plane.y = prev_plane_x * rot.sin() + cam.plane.y * rot.cos();
             }
-            if ctx.controls.left != 0. {
+            if self.controls.left != 0. {
                 let rot = SENSITIVITY;
                 let prev_dir_x = cam.dir.x;
                 let prev_plane_x = cam.plane.x;
@@ -171,7 +210,7 @@ impl State for InGame {
                 cam.plane.y = prev_plane_x * rot.sin() + cam.plane.y * rot.cos();
             }
 
-            if ctx.controls.interact {
+            if self.controls.interact {
                 writer.send(player::SendAction {
                     entity: ent,
                     action: player::Action::Interact,

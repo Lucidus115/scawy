@@ -46,21 +46,8 @@ pub mod prelude {
     pub const TIMESTEP: f32 = 1. / FPS as f32;
 }
 
-#[derive(Default)]
-pub struct Controls {
-    pub x: f32,
-    pub y: f32,
-    pub left: f32,
-    pub right: f32,
-    pub interact: bool,
-    pub pause: bool,
-    pub debug_view: bool,
-    pub debug_zoom: f32,
-}
-
 pub struct Context {
     pub assets: AssetCache,
-    pub controls: Controls,
     pub input: WinitInputHelper,
     pub snd: AudioManager,
 }
@@ -81,7 +68,6 @@ impl Game {
         let mut ctx = Context {
             snd,
             assets,
-            controls: Controls::default(),
             input: WinitInputHelper::new(),
         };
         let default_state = Box::new(state::game::InGame::new(&mut ctx));
@@ -95,35 +81,6 @@ impl Game {
     }
 
     fn update(&mut self) {
-        self.ctx.controls = {
-            let x = self.ctx.input.key_held(VirtualKeyCode::D) as i8
-                - self.ctx.input.key_held(VirtualKeyCode::A) as i8;
-            let y = self.ctx.input.key_held(VirtualKeyCode::S) as i8
-                - self.ctx.input.key_held(VirtualKeyCode::W) as i8;
-            let (left, right) = (
-                self.ctx.input.key_held(VirtualKeyCode::Left) as i8 as f32,
-                self.ctx.input.key_held(VirtualKeyCode::Right) as i8 as f32,
-            );
-            // let (left, right) = self.input.mouse_diff();
-
-            let debug_zoom = (self.ctx.controls.debug_zoom
-                + (self.ctx.input.key_held(VirtualKeyCode::Key2) as i8
-                    - self.ctx.input.key_held(VirtualKeyCode::Key1) as i8)
-                    as f32)
-                .max(1.);
-
-            Controls {
-                x: x as f32,
-                y: y as f32,
-                left,
-                right,
-                interact: self.ctx.input.key_pressed(VirtualKeyCode::E),
-                debug_view: self.ctx.input.key_held(VirtualKeyCode::Tab),
-                debug_zoom,
-                ..Default::default()
-            }
-        };
-
         let active_state = self.state.peek();
         active_state.update(&mut self.ctx);
         self.frame_count += 1;
