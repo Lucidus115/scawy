@@ -56,6 +56,15 @@ impl KeyboardInput {
                 return false;
             };
 
+            // check if prev state is the same in case key event fired twice
+            if let Some(state) = self.state.get(&code) {
+
+                // state never changed so no need to do anything
+                if state.current == key.state {
+                    return false;
+                }
+            }
+
             self.state.insert(
                 code,
                 KeyState {
