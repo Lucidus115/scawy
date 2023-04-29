@@ -50,9 +50,7 @@ impl Entity {
                         ..Default::default()
                     },
                     components::Collider::default(),
-                    components::Battery {
-                        amount: 1
-                    }
+                    components::Battery { amount: 1 },
                 ))
                 .id(),
         }

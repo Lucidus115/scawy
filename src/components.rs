@@ -101,5 +101,5 @@ pub struct Generator {
 
 #[derive(Component, Default)]
 pub struct Battery {
-    pub amount: u32
+    pub amount: u32,
 }

@@ -17,7 +17,6 @@ opt-level = 3
 
 [dependencies]
 assets_manager = { version = "0.10.0", features = ["default", "image", "wav"]}
-winit_input_helper = "0.14.0"
 game-loop = { version = "0.10", features = ["winit"] }
 pixels = { git = "https://github.com/parasyte/pixels", branch = "main"}
 bevy_ecs = "0.10"

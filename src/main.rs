@@ -1,9 +1,9 @@
 use crate::prelude::*;
 use assets_manager::AssetCache;
+use input::{KeyboardInput, KeyCode};
 use kira::manager::{backend::cpal::CpalBackend, AudioManager, AudioManagerSettings};
 use state::AppState;
-use std::time::Instant;
-use winit_input_helper::WinitInputHelper;
+use std::{collections::HashSet, time::Instant};
 
 pub mod astar;
 pub mod components;
@@ -11,6 +11,7 @@ pub mod physics;
 
 mod ai;
 mod graphics;
+mod input;
 mod map;
 mod math;
 mod player;
@@ -20,9 +21,7 @@ mod state;
 
 use game_loop::{
     game_loop,
-    winit::{
-        dpi::LogicalSize, event::VirtualKeyCode, event_loop::EventLoop, window::WindowBuilder,
-    },
+    winit::{dpi::LogicalSize, event_loop::EventLoop, window::WindowBuilder},
 };
 use pixels::{
     wgpu::{Color, RequestAdapterOptions},
@@ -48,7 +47,7 @@ pub mod prelude {
 
 pub struct Context {
     pub assets: AssetCache,
-    pub input: WinitInputHelper,
+    pub input: KeyboardInput,
     pub snd: AudioManager,
 }
 
@@ -56,7 +55,8 @@ struct Game {
     ctx: Context,
     state: AppState,
     pixels: Pixels,
-    frame_count: u32,
+    exit: bool,
+    keys: Vec<game_loop::winit::event::KeyboardInput>,
 }
 
 impl Game {
@@ -68,7 +68,7 @@ impl Game {
         let mut ctx = Context {
             snd,
             assets,
-            input: WinitInputHelper::new(),
+            input: KeyboardInput::default(),
         };
         let default_state = Box::new(state::game::InGame::new(&mut ctx));
 
@@ -76,14 +76,21 @@ impl Game {
             ctx,
             state: AppState::new(default_state),
             pixels,
-            frame_count: 0,
+            exit: false,
+            keys: Vec::default(),
         }
     }
 
     fn update(&mut self) {
+        self.ctx.input.capture_keys(&mut self.keys);
+
+        if self.ctx.input.pressed(KeyCode::Escape) {
+            self.exit = true;
+            return;
+        }
+
         let active_state = self.state.peek();
         active_state.update(&mut self.ctx);
-        self.frame_count += 1;
     }
 
     fn draw(&mut self) {
@@ -174,23 +181,34 @@ fn main() -> Result<(), Error> {
             frames_drawn += 1;
         },
         |g, event| {
-            if !g.game.ctx.input.update(event) {
-                return;
-            }
+            //TODO: Only update input calls once read by game loop
+            // if !g.game.ctx.input.update(event) {
+            //     return;
+            // }
 
-            if g.game.ctx.input.key_pressed(VirtualKeyCode::Escape)
-                || g.game.ctx.input.close_requested()
-                || g.game.ctx.input.destroyed()
-            {
-                g.exit();
-                return;
-            }
+            use game_loop::winit::event::*;
 
-            if let Some(size) = g.game.ctx.input.window_resized() {
-                if let Err(err) = g.game.pixels.resize_surface(size.width, size.height) {
-                    error!("uh oh! window resize failed: {err}");
-                    g.exit();
+            match &event {
+                Event::WindowEvent { event, .. } => match event {
+                    WindowEvent::CloseRequested => g.game.exit = true,
+                    WindowEvent::Destroyed => g.game.exit = true,
+                    WindowEvent::Resized(size) => {
+                        if let Err(err) = g.game.pixels.resize_surface(size.width, size.height) {
+                            error!("uh oh! window resize failed: {err}");
+                            g.exit();
+                        }
+                    }
+                    WindowEvent::KeyboardInput { input, .. } => {
+                        g.game.keys.push(*input);
+                    }
+                    _ => (),
+                },
+                Event::MainEventsCleared => {
+                    if g.game.exit {
+                        g.exit();
+                    }
                 }
+                _ => (),
             }
         },
     )

@@ -4,7 +4,7 @@ use crate::{
     prelude::*,
     sound, spawner,
     state::State,
-    Context, HEIGHT, WIDTH,
+    Context, HEIGHT, WIDTH, input::KeyCode,
 };
 
 use assets_manager::{asset::Wav, BoxedError};
@@ -130,19 +130,18 @@ impl InGame {
     }
 }
 
-const SENSITIVITY: f32 = 1. / FPS as f32 * 3.;
+const SENSITIVITY: f32 = 1. / FPS as f32 * 2.5;
 impl State for InGame {
     fn update(&mut self, ctx: &mut Context) {
-        use game_loop::winit::event::VirtualKeyCode;
 
         self.controls = {
-            let x = ctx.input.key_held(VirtualKeyCode::D) as i8
-                - ctx.input.key_held(VirtualKeyCode::A) as i8;
-            let y = ctx.input.key_held(VirtualKeyCode::S) as i8
-                - ctx.input.key_held(VirtualKeyCode::W) as i8;
+            let x =
+                ctx.input.held(KeyCode::D) as i8 - ctx.input.held(KeyCode::A) as i8;
+            let y =
+                ctx.input.held(KeyCode::S) as i8 - ctx.input.held(KeyCode::W) as i8;
             let (left, right) = (
-                ctx.input.key_held(VirtualKeyCode::Left) as i8 as f32,
-                ctx.input.key_held(VirtualKeyCode::Right) as i8 as f32,
+                ctx.input.held(KeyCode::Left) as i8 as f32,
+                ctx.input.held(KeyCode::Right) as i8 as f32,
             );
             // let (left, right) = self.input.mouse_diff();
 
@@ -151,8 +150,8 @@ impl State for InGame {
                 y: y as f32,
                 left,
                 right,
-                interact: ctx.input.key_pressed(VirtualKeyCode::E),
-                attack: ctx.input.key_pressed(VirtualKeyCode::Space),
+                interact: ctx.input.pressed(KeyCode::E),
+                attack: ctx.input.pressed(KeyCode::Space),
                 ..Default::default()
             }
         };

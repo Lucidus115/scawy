@@ -23,7 +23,13 @@ pub struct FlashLight {
 pub fn add_to_world(schedule: &mut Schedule, world: &mut World) {
     add_event::<SendAction>(world, schedule);
     add_event::<FlashLight>(world, schedule);
-    schedule.add_systems((cam_follow_player, interact, turn_on_gen, use_light, pickup_battery));
+    schedule.add_systems((
+        cam_follow_player,
+        interact,
+        turn_on_gen,
+        use_light,
+        pickup_battery,
+    ));
 }
 
 fn cam_follow_player(
@@ -74,10 +80,13 @@ fn use_light(
         };
 
         if player.batteries == 0 {
-            sounds.push(sound::Track::World, sound::SoundInfo {
-                path: "click.wav".into(),
-                ..Default::default()
-            });
+            sounds.push(
+                sound::Track::World,
+                sound::SoundInfo {
+                    path: "click.wav".into(),
+                    ..Default::default()
+                },
+            );
             return;
         }
         player.batteries -= 1;
@@ -87,10 +96,13 @@ fn use_light(
             duration: (FPS as f32 * 0.5) as u32,
         });
 
-        sounds.push(sound::Track::World, sound::SoundInfo {
-            path: "flash.wav".into(),
-            ..Default::default()
-        });
+        sounds.push(
+            sound::Track::World,
+            sound::SoundInfo {
+                path: "flash.wav".into(),
+                ..Default::default()
+            },
+        );
     }
 }
 
@@ -154,7 +166,7 @@ fn pickup_battery(
         let Ok(bat) = bat_query.get(hit) else {
             continue;
         };
-      
+
         player.batteries += bat.amount;
         cmd.entity(hit).despawn();
     }
