@@ -68,6 +68,8 @@ pub struct InGame {
     schedule: Schedule,
     z_buffer: Vec<f32>,
     controls: Controls,
+    light_intensity: f32,
+    light_duration: u32,
 }
 
 impl InGame {
@@ -122,6 +124,8 @@ impl InGame {
             schedule,
             z_buffer: vec![0.; WIDTH],
             controls: Default::default(),
+            light_intensity: 1.,
+            light_duration: 0,
         }
     }
 }
@@ -129,7 +133,6 @@ impl InGame {
 const SENSITIVITY: f32 = 1. / FPS as f32 * 3.;
 impl State for InGame {
     fn update(&mut self, ctx: &mut Context) {
-
         use game_loop::winit::event::VirtualKeyCode;
 
         self.controls = {
@@ -169,7 +172,7 @@ impl State for InGame {
         )> = SystemState::new(&mut self.world);
 
         let (mut writer, mut cam, mut player_query) = system_state.get_mut(&mut self.world);
-        
+
         // Input
         for (ent, mut trans, mut movement) in player_query.iter_mut() {
             let mut vel = Vec2::ZERO;
@@ -216,6 +219,12 @@ impl State for InGame {
                     action: player::Action::Interact,
                 });
             }
+            if self.controls.attack {
+                writer.send(player::SendAction {
+                    entity: ent,
+                    action: player::Action::Attack,
+                });
+            }
 
             trans.dir = cam.dir;
         }
@@ -229,7 +238,6 @@ impl State for InGame {
 
         let mut play_sounds = |track| {
             sounds.0.get_mut(&track).unwrap().retain(|snd| {
-
                 let path = format!("{}/sounds/{}", crate::ASSETS_FOLDER, snd.path);
                 let path = path.as_str();
 
@@ -243,7 +251,7 @@ impl State for InGame {
                 if ctx.snd.play(snd).is_err() {
                     warn!("An error occured attempting to play sound from path: {path}");
                 }
-                
+
                 false
             });
         };
@@ -254,18 +262,29 @@ impl State for InGame {
     #[allow(clippy::type_complexity)]
     fn draw(&mut self, ctx: &mut Context, screen: &mut [u8]) {
         let mut system_state: SystemState<(
+            EventReader<player::FlashLight>,
             Res<Camera>,
             Res<map::Map>,
             Query<(&components::Transform, &components::Sprite)>,
         )> = SystemState::new(&mut self.world);
 
-        let (cam, map, sprite_query) = system_state.get_mut(&mut self.world);
+        let (mut event_reader, cam, map, sprite_query) = system_state.get_mut(&mut self.world);
 
         let floor = ctx.assets.load::<Texture>("textures.floor").unwrap().read();
         let ceil = ctx.assets.load::<Texture>("textures.ceil").unwrap().read();
 
         let cam_pos_x = cam.pos.x;
         let cam_pos_y = cam.pos.y;
+
+        for event in event_reader.iter() {
+            self.light_intensity = event.intesity;
+            self.light_duration = event.duration;
+        }
+
+        if self.light_duration != 0 {
+            self.light_intensity = lerp(self.light_intensity, 1., 1. / self.light_duration as f32);
+            self.light_duration -= 1;
+        }
 
         // draw map first
 
@@ -299,18 +318,14 @@ impl State for InGame {
                 floor_pos += step;
 
                 let idx = idx(tex_coords.x * 4, tex_coords.y * 4, floor.width());
-                let dist = (row_dist * DARKNESS / 0.5).max(0.) as u8;
+                let dist = (row_dist * DARKNESS / self.light_intensity / 0.5).max(1.) as u8;
 
                 // floor
                 {
                     let mut rgba = floor.pixel(idx).slice();
 
                     rgba.iter_mut().take(3).for_each(|val| {
-                        *val /= 2;
-
-                        if dist != 0 {
-                            *val /= dist;
-                        }
+                        *val = *val / 2 / dist;
                     });
 
                     let i = x * 4 + y * WIDTH * 4;
@@ -321,11 +336,7 @@ impl State for InGame {
                 {
                     let mut rgba = ceil.pixel(idx).slice();
                     rgba.iter_mut().take(3).for_each(|val| {
-                        *val /= 2;
-
-                        if dist != 0 {
-                            *val /= dist;
-                        }
+                        *val = *val / 2 / dist;
                     });
 
                     let i = x * 4 + (HEIGHT - y - 1) * WIDTH * 4;
@@ -400,6 +411,9 @@ impl State for InGame {
             let draw_start = (-wall_height / 2 + HEIGHT as i32 / 2).max(0);
             let draw_end = (wall_height / 2 + HEIGHT as i32 / 2).min(HEIGHT as i32);
 
+            let dist = (HEIGHT as f32 * DARKNESS / self.light_intensity / wall_height as f32)
+                .max(1.) as u8;
+
             let tile = map
                 .get_tile(tile_pos.x as u32, tile_pos.y as u32)
                 .expect("tile should have been found already");
@@ -440,10 +454,7 @@ impl State for InGame {
                         *val /= 2;
                     }
 
-                    let dist = (HEIGHT as f32 * DARKNESS / wall_height as f32).max(0.) as u8;
-                    if dist != 0 {
-                        *val /= dist;
-                    }
+                    *val /= dist;
                 });
 
                 let i = x * 4 + y as usize * WIDTH * 4;
@@ -501,6 +512,8 @@ impl State for InGame {
                             (((sprite_width / 2) + screen_x).max(0) as u32).min(WIDTH as u32),
                             (sprite_height / 2 + HEIGHT as i32 / 2 + move_screen).min(HEIGHT as i32) as u32);
 
+                        let dist = (trans.pos.distance(cam.pos) * DARKNESS / self.light_intensity / 2.).max(1.) as u8;
+
                         for x in draw_start.x..draw_end.x {
                             let tex_x = (256 * (x as i32 - (-sprite_width / 2 + screen_x)) as u32 * tex.width() / sprite_width as u32) / 256;
                             if !(trans_y > 0. && x < WIDTH as u32 && trans_y < self.z_buffer[x as usize]) {
@@ -522,12 +535,9 @@ impl State for InGame {
                                 prev_color.blend(color);
 
                                 let mut slice = prev_color.slice();
-                                let dist = (trans.pos.distance(cam.pos) * DARKNESS / 2.).max(0.) as u8;
 
                                 slice.iter_mut().take(3).for_each(|val| {
-                                    if dist != 0 {
-                                        *val /= dist;
-                                    }
+                                    *val /= dist;
                                 });
                                 screen[i..i + 4].copy_from_slice(&slice);
                             }

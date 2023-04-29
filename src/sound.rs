@@ -39,6 +39,7 @@ impl Default for SoundQueue {
     }
 }
 
+#[derive(Default)]
 pub struct SoundInfo {
     pub path: String,
     pub settings: kira::sound::static_sound::StaticSoundSettings,

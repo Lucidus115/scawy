@@ -62,8 +62,10 @@ impl Default for Collider {
     }
 }
 
-#[derive(Component)]
-pub struct Player;
+#[derive(Component, Default)]
+pub struct Player {
+    pub batteries: u8,
+}
 
 #[derive(Component)]
 pub struct Ray {

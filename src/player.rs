@@ -15,9 +15,15 @@ pub struct SendAction {
     pub action: Action,
 }
 
+pub struct FlashLight {
+    pub intesity: f32,
+    pub duration: u32,
+}
+
 pub fn add_to_world(schedule: &mut Schedule, world: &mut World) {
     add_event::<SendAction>(world, schedule);
-    schedule.add_systems((cam_follow_player, interact, turn_on_gen));
+    add_event::<FlashLight>(world, schedule);
+    schedule.add_systems((cam_follow_player, interact, turn_on_gen, use_light));
 }
 
 fn cam_follow_player(
@@ -35,6 +41,9 @@ fn interact(
     query: Query<(Entity, &components::Transform), With<components::Player>>,
 ) {
     for event in event_reader.iter() {
+        let Action::Interact = event.action else {
+            continue;
+        };
         let Ok((ent, trans)) = query.get(event.entity) else {
             continue;
         };
@@ -47,6 +56,41 @@ fn interact(
                 max_dist: 1.,
             },
         );
+    }
+}
+
+fn use_light(
+    mut sounds: ResMut<sound::SoundQueue>,
+    mut event_writer: EventWriter<FlashLight>,
+    mut event_reader: EventReader<SendAction>,
+    mut query: Query<&mut components::Player>,
+) {
+    for event in event_reader.iter() {
+        let Action::Attack = event.action else {
+            continue;
+        };
+        let Ok(mut player) = query.get_mut(event.entity) else {
+            continue;
+        };
+
+        if player.batteries == 0 {
+            sounds.push(sound::Track::World, sound::SoundInfo {
+                path: "click.wav".into(),
+                ..Default::default()
+            });
+            return;
+        }
+        player.batteries -= 1;
+
+        event_writer.send(FlashLight {
+            intesity: 7.,
+            duration: (FPS as f32 * 0.5) as u32,
+        });
+
+        sounds.push(sound::Track::World, sound::SoundInfo {
+            path: "flash.wav".into(),
+            ..Default::default()
+        });
     }
 }
 

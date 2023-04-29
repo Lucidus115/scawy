@@ -13,7 +13,7 @@ pub fn spawn_player(cmd: &mut Commands, trans: Transform) -> Entity {
     cmd.spawn((
         trans,
         Movement::with_speed(0.2),
-        Player,
+        Player::default(),
         Collider::default(),
     ))
     .id()
