@@ -1,10 +1,12 @@
 use crate::{
     graphics::{Color, Texture},
-    idx, map, player,
+    idx,
+    input::KeyCode,
+    map, player,
     prelude::*,
     sound, spawner,
     state::State,
-    Context, HEIGHT, WIDTH, input::KeyCode,
+    Context, HEIGHT, WIDTH,
 };
 
 use assets_manager::{asset::Wav, BoxedError};
@@ -12,7 +14,7 @@ use bevy_ecs::{prelude::*, system::SystemState};
 use kira::{
     manager::error::AddSubTrackError,
     sound::static_sound::StaticSoundData,
-    track::{effect::reverb::ReverbBuilder, TrackBuilder, TrackHandle},
+    track::{effect::reverb::ReverbBuilder, TrackBuilder, TrackHandle, TrackRoutes},
 };
 use rand::Rng;
 
@@ -31,6 +33,21 @@ impl CoreSet {
         schedule.set_default_base_set(CoreSet::Update);
         schedule.configure_set(CoreSet::First.before(CoreSet::Update));
         schedule
+    }
+}
+
+#[derive(Resource, Debug)]
+pub struct GameData {
+    pub generators_required: u32,
+    pub notes_taken: u32,
+}
+
+impl Default for GameData {
+    fn default() -> Self {
+        Self {
+            generators_required: 3,
+            notes_taken: 0,
+        }
     }
 }
 
@@ -77,6 +94,7 @@ impl InGame {
         let mut world = World::default();
         world.insert_resource(Camera::default());
         world.insert_resource(sound::SoundQueue::default());
+        world.insert_resource(GameData::default());
 
         let mut schedule = CoreSet::schedule();
 
@@ -102,15 +120,11 @@ impl InGame {
         let mut tracks = Vec::with_capacity(2);
         let mut setup_audio_tracks = || -> Result<(), AddSubTrackError> {
             let ambience = ctx.snd.add_sub_track(TrackBuilder::new())?;
-
-            let world_sounds = ctx.snd.add_sub_track({
-                let mut builder = TrackBuilder::new();
-                builder.add_effect(ReverbBuilder::new().mix(1.));
-                builder
-            })?;
+            let sfx = ctx.snd.add_sub_track(TrackBuilder::new())?;
 
             tracks.push(ambience);
-            tracks.push(world_sounds);
+            tracks.push(sfx);
+
             Ok(())
         };
 
@@ -133,12 +147,9 @@ impl InGame {
 const SENSITIVITY: f32 = 1. / FPS as f32 * 2.5;
 impl State for InGame {
     fn update(&mut self, ctx: &mut Context) {
-
         self.controls = {
-            let x =
-                ctx.input.held(KeyCode::D) as i8 - ctx.input.held(KeyCode::A) as i8;
-            let y =
-                ctx.input.held(KeyCode::S) as i8 - ctx.input.held(KeyCode::W) as i8;
+            let x = ctx.input.held(KeyCode::D) as i8 - ctx.input.held(KeyCode::A) as i8;
+            let y = ctx.input.held(KeyCode::S) as i8 - ctx.input.held(KeyCode::W) as i8;
             let (left, right) = (
                 ctx.input.held(KeyCode::Left) as i8 as f32,
                 ctx.input.held(KeyCode::Right) as i8 as f32,
@@ -255,7 +266,7 @@ impl State for InGame {
             });
         };
 
-        play_sounds(sound::Track::World);
+        play_sounds(sound::Track::Sfx);
     }
 
     #[allow(clippy::type_complexity)]

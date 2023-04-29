@@ -6,7 +6,7 @@ use bevy_ecs::system::Resource;
 #[derive(Hash, PartialEq, Eq, Clone, Copy, Debug)]
 pub enum Track {
     Ambience,
-    World,
+    Sfx,
 }
 
 #[derive(Resource)]
@@ -34,7 +34,7 @@ fn expect_msg(track: &Track) -> String {
 
 impl Default for SoundQueue {
     fn default() -> Self {
-        let map = [(Track::Ambience, vec![]), (Track::World, vec![])].into();
+        let map = [(Track::Ambience, vec![]), (Track::Sfx, vec![])].into();
         Self(map)
     }
 }

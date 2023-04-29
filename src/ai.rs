@@ -116,7 +116,7 @@ fn play_monster_sound(
 
         // Attempt to play wander sound
         sounds.push(
-            sound::Track::World,
+            sound::Track::Sfx,
             sound::SoundInfo::at_position("step.wav", &cam, trans.pos),
         )
     }

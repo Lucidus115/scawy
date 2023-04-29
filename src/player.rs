@@ -1,7 +1,10 @@
+use std::collections::HashMap;
+
 use crate::{
     prelude::*,
     sound, spawner,
-    state::game::{add_event, Camera},
+    state::game::{add_event, Camera, GameData},
+    ticks,
 };
 use bevy_ecs::prelude::*;
 
@@ -29,6 +32,7 @@ pub fn add_to_world(schedule: &mut Schedule, world: &mut World) {
         turn_on_gen,
         use_light,
         pickup_battery,
+        play_gen_sound,
     ));
 }
 
@@ -81,7 +85,7 @@ fn use_light(
 
         if player.batteries == 0 {
             sounds.push(
-                sound::Track::World,
+                sound::Track::Sfx,
                 sound::SoundInfo {
                     path: "click.wav".into(),
                     ..Default::default()
@@ -97,7 +101,7 @@ fn use_light(
         });
 
         sounds.push(
-            sound::Track::World,
+            sound::Track::Sfx,
             sound::SoundInfo {
                 path: "flash.wav".into(),
                 ..Default::default()
@@ -106,15 +110,48 @@ fn use_light(
     }
 }
 
-fn turn_on_gen(
+fn play_gen_sound(
     mut sounds: ResMut<sound::SoundQueue>,
     cam: Res<Camera>,
-    mut event_reader: EventReader<physics::CollisionHit>,
+    gen_query: Query<(Entity, &components::Transform, &components::Generator)>,
+    mut sound_ticks: Local<HashMap<Entity, u32>>,
+) {
+    let ticks_til_start = ticks(1.75);
+
+    for (ent, trans, gen) in gen_query.iter() {
+        if !gen.is_on {
+            continue;
+        }
+
+        let Some(start) = sound_ticks.get_mut(&ent) else {
+            sound_ticks.insert(ent, ticks_til_start);
+            continue;
+        };
+
+        if *start != 0 {
+            *start -= 1;
+            continue;
+        }
+
+        let mut snd = sound::SoundInfo::at_position("generator_running.wav", &cam, trans.pos);
+        let vol = snd.settings.volume.as_amplitude();
+        snd.settings.volume = kira::Volume::Amplitude(vol * 0.15);
+        sounds.push(sound::Track::Sfx, snd);
+    }
+}
+
+#[allow(clippy::too_many_arguments)]
+fn turn_on_gen(
+    mut light_writer: EventWriter<FlashLight>,
+    mut collision_reader: EventReader<physics::CollisionHit>,
+    mut data: ResMut<GameData>,
+    mut sounds: ResMut<sound::SoundQueue>,
+    cam: Res<Camera>,
     mut gen_query: Query<(&components::Transform, &mut components::Generator)>,
     ray_query: Query<&components::Ray>,
     player_query: Query<&components::Player>,
 ) {
-    for event in event_reader.iter() {
+    for event in collision_reader.iter() {
         let (par, hit) = if let Ok(ray) = ray_query.get(event.entity) {
             (ray.parent, event.hit_entity)
         } else if let Ok(ray) = ray_query.get(event.hit_entity) {
@@ -133,14 +170,28 @@ fn turn_on_gen(
             continue;
         }
 
-        let snd = sound::SoundInfo::at_position("generator.wav", &cam, trans.pos);
+        let snd = sound::SoundInfo::at_position("generator_on.wav", &cam, trans.pos);
 
-        snd.settings.loop_behavior(kira::LoopBehavior {
-            start_position: 1.5,
-        });
+        snd.settings
+            .loop_behavior(kira::LoopBehavior { start_position: 0. });
 
-        sounds.push(sound::Track::World, snd);
+        sounds.push(sound::Track::Sfx, snd);
         gen.is_on = true;
+
+        if data.generators_required == 0 {
+            light_writer.send(FlashLight {
+                intesity: f32::MAX,
+                duration: u32::MAX,
+            });
+
+            let snd = sound::SoundInfo {
+                path: "power_on.wav".into(),
+                ..Default::default()
+            };
+
+            sounds.push(sound::Track::Sfx, snd);
+        }
+        data.generators_required -= 1;
     }
 }
 

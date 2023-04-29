@@ -1,9 +1,14 @@
 use crate::prelude::*;
 use assets_manager::AssetCache;
-use input::{KeyboardInput, KeyCode};
-use kira::manager::{backend::cpal::CpalBackend, AudioManager, AudioManagerSettings};
+use input::{KeyCode, KeyboardInput};
+use kira::{
+    manager::{backend::cpal::CpalBackend, AudioManager, AudioManagerSettings},
+    sound::static_sound::{StaticSoundData, StaticSoundSettings},
+    track::{effect::reverb::ReverbBuilder, TrackBuilder, TrackRoutes},
+    LoopBehavior,
+};
 use state::AppState;
-use std::{collections::HashSet, time::Instant};
+use std::time::Instant;
 
 pub mod astar;
 pub mod components;
@@ -110,6 +115,11 @@ pub fn idx(x: u32, y: u32, width: u32) -> usize {
     (y * width + x) as usize
 }
 
+/// Calculates the nearest tick value from seconds
+pub fn ticks(seconds: f32) -> u32 {
+    (FPS as f32 * seconds) as u32
+}
+
 fn main() -> Result<(), Error> {
     env_logger::Builder::new()
         .filter(None, LevelFilter::Warn)
@@ -181,11 +191,6 @@ fn main() -> Result<(), Error> {
             frames_drawn += 1;
         },
         |g, event| {
-            //TODO: Only update input calls once read by game loop
-            // if !g.game.ctx.input.update(event) {
-            //     return;
-            // }
-
             use game_loop::winit::event::*;
 
             match &event {
