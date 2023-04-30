@@ -1,5 +1,5 @@
 use crate::{
-    graphics::{Color, Texture},
+    graphics::{Color, Texture, self},
     idx,
     input::KeyCode,
     map,
@@ -579,6 +579,8 @@ impl State for InGame {
                             }
                         }
                     });
+
+        graphics::draw_text(screen, uvec2(WIDTH as u32 / 2, HEIGHT as u32 / 2), "A");
     }
 }
 

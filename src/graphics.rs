@@ -97,3 +97,38 @@ impl Texture {
         }
     }
 }
+
+pub fn draw_text(screen: &mut [u8], pos: crate::UVec2, text: &str) {
+
+    const SCREEN_WIDTH: usize = crate::WIDTH * 4;
+
+    // Width of each letter multipied by 4 (because rgba)
+    const L_WIDTH: usize = 10 * 4;
+    const L_HEIGHT: usize = 12;
+
+    let img = image::open("assets/font.png").expect("missing assets/font.png");
+    let buf = img.as_bytes();
+
+    let mut x = pos.x as usize;
+    let y = pos.y as usize;
+    
+    text.chars().for_each(|c| {
+        let c_idx = c as usize;
+        let mut s = 0;
+
+        for tex_y in 0..L_HEIGHT {
+            let i = x * 4 + y * SCREEN_WIDTH + tex_y * SCREEN_WIDTH;
+
+            // Merge pixels into screen
+            let zipped = screen[i..i + L_WIDTH].iter_mut().zip(&buf[s..s + L_WIDTH]);
+            for (left, &right) in zipped {
+                if right > 0 {
+                    *left = right;
+                }
+            }
+            s += L_WIDTH;
+        }
+
+        x += L_WIDTH;
+    });
+}
