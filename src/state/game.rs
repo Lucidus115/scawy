@@ -26,6 +26,7 @@ const DARKNESS: f32 = 3.5;
 pub enum CoreSet {
     First,
     Update,
+    Physics,
     Last,
 }
 
@@ -33,8 +34,11 @@ impl CoreSet {
     pub fn schedule() -> Schedule {
         let mut schedule = Schedule::new();
         schedule.set_default_base_set(CoreSet::Update);
-        schedule.configure_set(CoreSet::First.before(CoreSet::Update));
-        schedule.configure_set(CoreSet::Last.after(CoreSet::Update));
+        schedule.configure_sets((
+            CoreSet::First.before(CoreSet::Update),
+            CoreSet::Physics.after(CoreSet::Update),
+            CoreSet::Last.after(CoreSet::Update),
+        ));
         schedule
     }
 }

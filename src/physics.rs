@@ -1,4 +1,8 @@
-use crate::{map, prelude::*, state::game::add_event};
+use crate::{
+    map,
+    prelude::*,
+    state::game::{add_event, CoreSet},
+};
 use bevy_ecs::prelude::*;
 
 pub struct CollisionHit {
@@ -14,7 +18,9 @@ impl CollisionHit {
 
 pub fn add_to_world(schedule: &mut Schedule, world: &mut World) {
     add_event::<CollisionHit>(world, schedule);
-    schedule.add_systems((apply_movement, detect_collision.before(apply_movement)));
+    schedule.add_systems(
+        (apply_movement, detect_collision.before(apply_movement)).in_base_set(CoreSet::Physics),
+    );
 }
 
 fn apply_movement(mut move_query: Query<(&mut components::Transform, &mut components::Movement)>) {
