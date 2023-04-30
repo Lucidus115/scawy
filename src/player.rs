@@ -51,7 +51,7 @@ pub fn add_to_world(schedule: &mut Schedule, world: &mut World) {
         play_gen_sound,
         exit_door,
         exit_on_dead,
-        interact,
+        interact.in_base_set(CoreSet::First),
         despawn_interactable.in_base_set(CoreSet::Last),
     ));
 }
@@ -133,7 +133,7 @@ fn use_light(
                     pos = vec2(x as f32, y as f32);
                 }
             }
-            *monster = components::Monster::Flee(pos);
+            monster.state = components::MonsterState::Flee(pos);
         }
 
         event_writer.send(FlashLight {

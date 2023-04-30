@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use crate::{
     astar,
-    components::Monster,
+    components::{Monster, MonsterState},
     map,
     prelude::*,
     sound,
@@ -11,6 +11,8 @@ use crate::{
 };
 use bevy_ecs::prelude::*;
 use rand::Rng;
+
+pub const ATTACK_TIME: u32 = (FPS as f32 * 2.5) as u32;
 
 const SEEK_TIME: f32 = 10.;
 const ATTACK_RANGE: f32 = 1.;
@@ -96,15 +98,16 @@ fn navigate(
 
 fn monster_rest_countdown(mut query: Query<&mut Monster>) {
     for mut monster in query.iter_mut() {
-        let Monster::Rest(ticks) = *monster else {
+        let MonsterState::Rest(ticks) = monster.state else {
             continue;
         };
 
         if ticks == 0 {
-            *monster = Monster::Wander;
+            monster.state = MonsterState::Wander;
             return;
         }
-        *monster = Monster::Rest(ticks - 1);
+        monster.state = MonsterState::Rest(ticks - 1);
+        monster.attack_time = ATTACK_TIME;
     }
 }
 
@@ -122,9 +125,9 @@ fn play_monster_sound(
     let mut seconds_to_play = 1.25;
 
     for (trans, monster) in query.iter() {
-        match monster {
-            Monster::Rest(_) => continue,
-            Monster::Flee(_) | Monster::Attack(_) => {
+        match monster.state {
+            MonsterState::Rest(_) => continue,
+            MonsterState::Flee(_) | MonsterState::Attack(_) => {
                 seconds_to_play = 0.5;
             }
             _ => (),
@@ -142,7 +145,7 @@ fn play_monster_sound(
 
 fn monster_wander(mut query: Query<(&Monster, &mut components::Navigator)>, map: Res<map::Map>) {
     for (monster, mut nav) in query.iter_mut() {
-        let Monster::Wander = *monster else {
+        let MonsterState::Wander = monster.state else {
             continue;
         };
 
@@ -164,7 +167,7 @@ fn monster_rest(mut event_reader: EventReader<ReachedTarget>, mut query: Query<&
     for event in event_reader.iter() {
         if let Ok(mut monster) = query.get_mut(event.nav_entity) {
             let rest_time = rand::thread_rng().gen_range(2..6);
-            *monster = Monster::Rest(ticks(rest_time as f32));
+            monster.state = MonsterState::Rest(ticks(rest_time as f32));
         }
     }
 }
@@ -181,17 +184,15 @@ fn set_target(
 
     let targets: Vec<Entity> = target_query.iter().collect();
     for (mut monster, mut movement) in query.iter_mut() {
-        let Monster::Wander = *monster else {
+        let MonsterState::Wander = monster.state else {
             continue;
         };
         if !rand::thread_rng().gen_bool(1. / 6.) {
             continue;
         }
 
-        println!("Hunting");
-
         if let Some(target) = targets.get(rand::thread_rng().gen_range(0..targets.len())) {
-            *monster = Monster::Attack(*target);
+            monster.state = MonsterState::Attack(*target);
         }
 
         let speed = movement.speed() * AGGRO_SPEED_MULTIPLIER;
@@ -202,38 +203,66 @@ fn set_target(
 }
 
 fn attack(
+    mut sounds: ResMut<sound::SoundQueue>,
     mut query: Query<(
         &components::Transform,
         &mut Monster,
         &mut components::Movement,
         &mut components::Navigator,
     )>,
-    mut target_query: Query<(&components::Transform, &mut components::MonsterTarget)>,
+    mut target_query: Query<
+        (
+            &components::Transform,
+            &mut components::MonsterTarget,
+            Option<&mut components::Movement>,
+        ),
+        Without<components::Monster>,
+    >,
 ) {
-    for (trans, mut monster, mut movement, mut nav) in query.iter_mut() {
-        match *monster {
-            Monster::Flee(_) | Monster::Rest(_) => continue,
+    'outer: for (trans, mut monster, mut movement, mut nav) in query.iter_mut() {
+        match monster.state {
+            MonsterState::Flee(_) | MonsterState::Rest(_) => continue,
             _ => (),
         }
 
-        for (target_trans, mut target) in target_query.iter_mut() {
+        for (target_trans, mut target, movement) in target_query.iter_mut() {
             if trans.pos.distance_squared(target_trans.pos) < ATTACK_RANGE {
+                if monster.attack_time != 0 {
+                    if let Some(mut movement) = movement {
+                        movement.set_velocity(Vec2::ZERO);
+                    }
+
+                    // Really stupid but I'm too lazy to add another timer
+                    if monster.attack_time == ATTACK_TIME {
+                        sounds.push(
+                            sound::Track::Sfx,
+                            sound::SoundInfo {
+                                path: "hurt.wav".into(),
+                                ..Default::default()
+                            },
+                        );
+                    }
+
+                    monster.attack_time -= 1;
+                    continue 'outer;
+                }
                 target.is_dead = true;
+                monster.attack_time = ATTACK_TIME;
             }
         }
 
-        let Monster::Attack(ent) = *monster else {
+        let MonsterState::Attack(ent) = monster.state else {
             continue;
         };
 
-        let Ok((target_trans, target)) = target_query.get(ent) else {
+        let Ok((target_trans, target, _)) = target_query.get(ent) else {
             continue;
         };
 
         nav.move_to = Some(target_trans.pos);
 
         if target.is_dead {
-            *monster = Monster::Rest(ticks(15.));
+            monster.state = MonsterState::Rest(ticks(15.));
 
             let speed = movement.speed() / AGGRO_SPEED_MULTIPLIER;
             movement.set_speed(speed);
@@ -243,7 +272,7 @@ fn attack(
 
 fn flee(mut query: Query<(&mut components::Navigator, &components::Monster)>) {
     for (mut nav, monster) in query.iter_mut() {
-        let Monster::Flee(pos) = *monster else {
+        let MonsterState::Flee(pos) = monster.state else {
             continue;
         };
         nav.move_to = Some(pos);

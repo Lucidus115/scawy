@@ -74,7 +74,11 @@ pub struct Player {
 }
 
 #[derive(Component)]
-pub enum Monster {
+pub struct Monster {
+    pub state: MonsterState,
+    pub attack_time: u32,
+}
+pub enum MonsterState {
     Rest(u32), // Duration to rest for in game ticks
     Wander,
     Attack(Entity), // Target
