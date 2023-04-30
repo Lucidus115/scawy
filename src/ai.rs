@@ -15,7 +15,7 @@ use rand::Rng;
 pub const ATTACK_TIME: u32 = (FPS as f32 * 2.5) as u32;
 
 const SEEK_TIME: f32 = 10.;
-const ATTACK_RANGE: f32 = 1.;
+const ATTACK_RANGE: f32 = 4.;
 const AGGRO_SPEED_MULTIPLIER: f32 = 1.15;
 
 struct ReachedTarget {
@@ -165,10 +165,15 @@ fn monster_wander(mut query: Query<(&Monster, &mut components::Navigator)>, map:
 
 fn monster_rest(mut event_reader: EventReader<ReachedTarget>, mut query: Query<&mut Monster>) {
     for event in event_reader.iter() {
-        if let Ok(mut monster) = query.get_mut(event.nav_entity) {
-            let rest_time = rand::thread_rng().gen_range(2..6);
-            monster.state = MonsterState::Rest(ticks(rest_time as f32));
+        let Ok(mut monster) = query.get_mut(event.nav_entity) else {
+            continue;
+        };
+
+        if let MonsterState::Attack(_) = monster.state {
+            continue;
         }
+        let rest_time = rand::thread_rng().gen_range(2..6);
+        monster.state = MonsterState::Rest(ticks(rest_time as f32));
     }
 }
 
@@ -212,6 +217,7 @@ fn attack(
     )>,
     mut target_query: Query<
         (
+            Entity,
             &components::Transform,
             &mut components::MonsterTarget,
             Option<&mut components::Movement>,
@@ -225,8 +231,9 @@ fn attack(
             _ => (),
         }
 
-        for (target_trans, mut target, movement) in target_query.iter_mut() {
+        for (ent, target_trans, mut target, movement) in target_query.iter_mut() {
             if trans.pos.distance_squared(target_trans.pos) < ATTACK_RANGE {
+                monster.state = MonsterState::Attack(ent);
                 if monster.attack_time != 0 {
                     if let Some(mut movement) = movement {
                         movement.set_velocity(Vec2::ZERO);
@@ -242,7 +249,6 @@ fn attack(
                             },
                         );
                     }
-
                     monster.attack_time -= 1;
                     continue 'outer;
                 }
@@ -255,7 +261,7 @@ fn attack(
             continue;
         };
 
-        let Ok((target_trans, target, _)) = target_query.get(ent) else {
+        let Ok((_, target_trans, target, _)) = target_query.get(ent) else {
             continue;
         };
 
