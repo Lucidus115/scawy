@@ -4,6 +4,8 @@ use assets_manager::{
 };
 use image::DynamicImage;
 
+use crate::{WIDTH, idx};
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Color {
     pub r: u8,
@@ -98,9 +100,8 @@ impl Texture {
     }
 }
 
+// I never got this to work lol
 pub fn draw_text(screen: &mut [u8], pos: crate::UVec2, text: &str) {
-
-    const SCREEN_WIDTH: usize = crate::WIDTH * 4;
 
     // Width of each letter multipied by 4 (because rgba)
     const L_WIDTH: usize = 10 * 4;
@@ -109,26 +110,28 @@ pub fn draw_text(screen: &mut [u8], pos: crate::UVec2, text: &str) {
     let img = image::open("assets/font.png").expect("missing assets/font.png");
     let buf = img.as_bytes();
 
-    let mut x = pos.x as usize;
-    let y = pos.y as usize;
+    let mut pos_x = pos.x as usize;
+    let pos_y = pos.y as usize;
     
     text.chars().for_each(|c| {
-        let c_idx = c as usize;
-        let mut s = 0;
+        
+        let mut s = c as usize;
 
-        for tex_y in 0..L_HEIGHT {
-            let i = x * 4 + y * SCREEN_WIDTH + tex_y * SCREEN_WIDTH;
-
+        for y in 0..img.height() {
+            let i = pos_x * 4 + pos_y * crate::WIDTH * 4;
+        
+            let idx = idx(s as u32 * 4, y * 4, img.width());
+    
             // Merge pixels into screen
-            let zipped = screen[i..i + L_WIDTH].iter_mut().zip(&buf[s..s + L_WIDTH]);
+            let zipped = screen[i..i + 4].iter_mut().zip(&buf[idx..idx + 4]);
             for (left, &right) in zipped {
                 if right > 0 {
                     *left = right;
                 }
             }
-            s += L_WIDTH;
+            s += img.width() as usize;
         }
 
-        x += L_WIDTH;
+        pos_x += L_WIDTH;
     });
 }

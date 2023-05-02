@@ -49,6 +49,13 @@ pub struct Context {
     pub assets: AssetCache,
     pub input: KeyboardInput,
     pub snd: AudioManager,
+    request_exit: bool
+}
+
+impl Context {
+    pub fn request_exit(&mut self) {
+        self.request_exit = true;
+    }
 }
 
 struct Game {
@@ -69,6 +76,7 @@ impl Game {
             snd,
             assets,
             input: KeyboardInput::default(),
+            request_exit: false,
         };
         let default_state = Box::new(state::game::InGame::new(&mut ctx));
 
@@ -82,6 +90,11 @@ impl Game {
     }
 
     fn update(&mut self) {
+        if self.ctx.request_exit {
+            self.exit = true;
+            return;
+        }
+        
         self.ctx.input.capture_keys(&mut self.keys);
 
         if self.ctx.input.pressed(KeyCode::Escape) {

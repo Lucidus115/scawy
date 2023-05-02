@@ -14,8 +14,8 @@ use assets_manager::{asset::Wav, BoxedError};
 use bevy_ecs::{prelude::*, system::SystemState};
 use kira::{
     manager::error::AddSubTrackError,
-    sound::static_sound::StaticSoundData,
-    track::{TrackBuilder, TrackHandle},
+    sound::static_sound::{StaticSoundData, StaticSoundSettings},
+    track::{TrackBuilder, TrackHandle}, LoopBehavior,
 };
 use rand::Rng;
 
@@ -100,7 +100,6 @@ impl InGame {
     pub fn new(ctx: &mut Context) -> Self {
         let mut world = World::default();
         world.insert_resource(Camera::default());
-        world.insert_resource(sound::SoundQueue::default());
         world.insert_resource(GameData::default());
 
         let mut schedule = CoreSet::schedule();
@@ -134,6 +133,18 @@ impl InGame {
 
             Ok(())
         };
+
+        let snd = sound::SoundInfo {
+            path: "bad_ambience.ogg".into(),
+            settings: StaticSoundSettings::new().loop_behavior(LoopBehavior {
+                start_position: 0.
+            })
+        };
+
+        let mut snd_queue = sound::SoundQueue::default();
+        snd_queue.push(sound::Track::Ambience, snd);
+
+        world.insert_resource(snd_queue);
 
         if setup_audio_tracks().is_err() {
             warn!("Bruh, audio tracks couldn't be set up properly. There goes the sound.");
@@ -193,19 +204,20 @@ impl State for InGame {
             system_state.get_mut(&mut self.world);
 
         let mut exit = false;
-
+        let mut msg = "";
         for event in exit_reader.iter() {
-            let msg = if let ExitCondition::Win = event {
+            msg = if let ExitCondition::Win = event {
                 "yay you win"
             } else {
                 "you are ded. not big surprise"
             };
 
-            panic!("{msg}");
             exit = true;
         }
 
         if exit {
+            println!("{msg}");
+            ctx.request_exit();
             return;
         }
 
@@ -293,6 +305,7 @@ impl State for InGame {
         };
 
         play_sounds(sound::Track::Sfx);
+        play_sounds(sound::Track::Ambience);
     }
 
     #[allow(clippy::type_complexity)]
@@ -580,7 +593,7 @@ impl State for InGame {
                         }
                     });
 
-        graphics::draw_text(screen, uvec2(WIDTH as u32 / 2, HEIGHT as u32 / 2), "A");
+        //graphics::draw_text(screen, uvec2(WIDTH as u32 / 2, HEIGHT as u32 / 2), "A");
     }
 }
 
