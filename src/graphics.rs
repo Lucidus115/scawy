@@ -4,7 +4,7 @@ use assets_manager::{
 };
 use image::DynamicImage;
 
-use crate::{WIDTH, idx};
+use crate::{idx, WIDTH};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Color {
@@ -102,7 +102,6 @@ impl Texture {
 
 // I never got this to work lol
 pub fn draw_text(screen: &mut [u8], pos: crate::UVec2, text: &str) {
-
     // Width of each letter multipied by 4 (because rgba)
     const L_WIDTH: usize = 10 * 4;
     const L_HEIGHT: usize = 12;
@@ -112,16 +111,15 @@ pub fn draw_text(screen: &mut [u8], pos: crate::UVec2, text: &str) {
 
     let mut pos_x = pos.x as usize;
     let pos_y = pos.y as usize;
-    
+
     text.chars().for_each(|c| {
-        
         let mut s = c as usize;
 
         for y in 0..img.height() {
             let i = pos_x * 4 + pos_y * crate::WIDTH * 4;
-        
+
             let idx = idx(s as u32 * 4, y * 4, img.width());
-    
+
             // Merge pixels into screen
             let zipped = screen[i..i + 4].iter_mut().zip(&buf[idx..idx + 4]);
             for (left, &right) in zipped {

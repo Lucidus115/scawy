@@ -49,7 +49,7 @@ pub struct Context {
     pub assets: AssetCache,
     pub input: KeyboardInput,
     pub snd: AudioManager,
-    request_exit: bool
+    request_exit: bool,
 }
 
 impl Context {
@@ -94,7 +94,7 @@ impl Game {
             self.exit = true;
             return;
         }
-        
+
         self.ctx.input.capture_keys(&mut self.keys);
 
         if self.ctx.input.pressed(KeyCode::Escape) {

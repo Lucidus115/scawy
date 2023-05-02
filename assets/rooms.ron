@@ -4,7 +4,6 @@
     - air
     G generator
     @ spawn
-    + connector
     N note
     E exit
     B battery

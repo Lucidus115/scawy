@@ -1,5 +1,5 @@
 use crate::{
-    graphics::{Color, Texture, self},
+    graphics::{self, Color, Texture},
     idx,
     input::KeyCode,
     map,
@@ -15,7 +15,8 @@ use bevy_ecs::{prelude::*, system::SystemState};
 use kira::{
     manager::error::AddSubTrackError,
     sound::static_sound::{StaticSoundData, StaticSoundSettings},
-    track::{TrackBuilder, TrackHandle}, LoopBehavior,
+    track::{TrackBuilder, TrackHandle},
+    LoopBehavior,
 };
 use rand::Rng;
 
@@ -136,9 +137,7 @@ impl InGame {
 
         let snd = sound::SoundInfo {
             path: "bad_ambience.ogg".into(),
-            settings: StaticSoundSettings::new().loop_behavior(LoopBehavior {
-                start_position: 0.
-            })
+            settings: StaticSoundSettings::new().loop_behavior(LoopBehavior { start_position: 0. }),
         };
 
         let mut snd_queue = sound::SoundQueue::default();
