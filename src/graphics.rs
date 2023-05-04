@@ -4,7 +4,7 @@ use assets_manager::{
 };
 use image::DynamicImage;
 
-use crate::{idx, WIDTH};
+use crate::WIDTH;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Color {
@@ -26,7 +26,8 @@ impl Color {
     pub fn blend(&mut self, color: Color) {
         let inner_blend = |self_val: &mut u8, val: u8| {
             let alpha = color.a as f32 / 255.;
-            *self_val = (val as f32 - (1. - alpha) * *self_val as f32 / alpha) as u8;
+            let output = (val as f32 * alpha) + (*self_val as f32 * (1. - alpha));
+            *self_val = output as u8;
         };
         inner_blend(&mut self.r, color.r);
         inner_blend(&mut self.g, color.g);
@@ -100,36 +101,62 @@ impl Texture {
     }
 }
 
-// I never got this to work lol
 pub fn draw_text(screen: &mut [u8], pos: crate::UVec2, text: &str) {
-    // Width of each letter multipied by 4 (because rgba)
-    const L_WIDTH: usize = 10 * 4;
-    const L_HEIGHT: usize = 12;
-
     let img = image::open("assets/font.png").expect("missing assets/font.png");
-    let buf = img.as_bytes();
 
-    let mut pos_x = pos.x as usize;
-    let pos_y = pos.y as usize;
+    let mut pos = pos;
+    for c in text.chars() {
+        pos.x += 10;
+        blit_sheet(screen, pos, &img, c as usize, 16, 16);
+    }
+}
 
-    text.chars().for_each(|c| {
-        let mut s = c as usize;
+fn blit_sheet(
+    screen: &mut [u8],
+    dest: crate::UVec2,
+    sprite: &DynamicImage,
+    index: usize,
+    rows: usize,
+    columns: usize,
+) {
+    let pixels = sprite.as_bytes();
+    let width = sprite.width() as usize / rows * 4;
+    let height = sprite.height() as usize / columns;
 
-        for y in 0..img.height() {
-            let i = pos_x * 4 + pos_y * crate::WIDTH * 4;
+    // convert index to x and y coords
+    let idx_x = index % rows;
+    let idx_y = index / rows;
 
-            let idx = idx(s as u32 * 4, y * 4, img.width());
+    for y in 0..height {
+        // coordinates on the sprite sheet
+        let x_pos = idx_x * width;
+        let y_pos = idx_y * height * 4;
 
-            // Merge pixels into screen
-            let zipped = screen[i..i + 4].iter_mut().zip(&buf[idx..idx + 4]);
-            for (left, &right) in zipped {
-                if right > 0 {
-                    *left = right;
-                }
+        let i = dest.x as usize * 4 + dest.y as usize * WIDTH * 4 + y * WIDTH * 4;
+        let s = ((y as f32 * 4. + y_pos as f32) * width as f32 * (rows as f32 / 4.) + x_pos as f32)
+            as usize;
+
+        // check for transparency
+        let pixels = &pixels[s..s + width];
+        let colors: Vec<Color> = pixels.chunks(4).map(Color::from).collect();
+
+        let screen_pixels = &screen[i..i + width];
+        let mut screen_colors: Vec<Color> = screen_pixels.chunks(4).map(Color::from).collect();
+
+        let mut vec = Vec::with_capacity(screen_pixels.len());
+        screen_colors.iter_mut().enumerate().for_each(|(idx, color)| {
+            color.blend(colors[idx]);
+            let pix = color.slice();
+
+            for i in pix {
+                vec.push(i);
             }
-            s += img.width() as usize;
-        }
+        });
 
-        pos_x += L_WIDTH;
-    });
+        screen[i..i + width].copy_from_slice(&vec);
+    }
+}
+
+fn blit(screen: &mut [u8], dest: crate::UVec2, sprite: &DynamicImage) {
+    blit_sheet(screen, dest, sprite, 0, 1, 1);
 }
