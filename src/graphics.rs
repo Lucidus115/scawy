@@ -136,7 +136,7 @@ fn blit_sheet(
         let s = ((y as f32 * 4. + y_pos as f32) * width as f32 * (rows as f32 / 4.) + x_pos as f32)
             as usize;
 
-        // check for transparency
+        // blend pixels with prev screen frame
         let pixels = &pixels[s..s + width];
         let colors: Vec<Color> = pixels.chunks(4).map(Color::from).collect();
 
@@ -144,14 +144,17 @@ fn blit_sheet(
         let mut screen_colors: Vec<Color> = screen_pixels.chunks(4).map(Color::from).collect();
 
         let mut vec = Vec::with_capacity(screen_pixels.len());
-        screen_colors.iter_mut().enumerate().for_each(|(idx, color)| {
-            color.blend(colors[idx]);
-            let pix = color.slice();
+        screen_colors
+            .iter_mut()
+            .enumerate()
+            .for_each(|(idx, color)| {
+                color.blend(colors[idx]);
+                let pix = color.slice();
 
-            for i in pix {
-                vec.push(i);
-            }
-        });
+                for i in pix {
+                    vec.push(i);
+                }
+            });
 
         screen[i..i + width].copy_from_slice(&vec);
     }
